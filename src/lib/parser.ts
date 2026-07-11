@@ -1,119 +1,119 @@
-const SUITS = ["s", "o"];
 const RANKS = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
 
 function rankIndex(rank: string): number {
-  return RANKS.indexOf(rank);
-}
-
-function expandRange(
-  firstRank: string,
-  startRank: string,
-  endRank: string,
-  suitType: "s" | "o" | "pair"
-): string[] {
-  const fi = rankIndex(firstRank);
-  const si = rankIndex(startRank);
-  const ei = rankIndex(endRank);
-  if (fi === -1 || si === -1 || ei === -1) return [];
-
-  const hands: string[] = [];
-  const lo = Math.min(si, ei);
-  const hi = Math.max(si, ei);
-  for (let i = lo; i <= hi; i++) {
-    const rank = RANKS[i];
-    if (suitType === "pair") {
-      hands.push(`${rank}${rank}`);
-    } else {
-      hands.push(`${firstRank}${rank}${suitType}`);
-    }
-  }
-  return hands;
+  return RANKS.indexOf(rank.toUpperCase());
 }
 
 function isValidHand(hand: string): boolean {
   if (hand.length === 2) {
-    return hand[0] === hand[1] && RANKS.includes(hand[0]);
+    return hand[0].toUpperCase() === hand[1].toUpperCase() && RANKS.includes(hand[0].toUpperCase());
   }
   if (hand.length === 3) {
+    const suit = hand[2].toLowerCase();
     return (
-      RANKS.includes(hand[0]) &&
-      RANKS.includes(hand[1]) &&
-      SUITS.includes(hand[2].toLowerCase())
+      RANKS.includes(hand[0].toUpperCase()) &&
+      RANKS.includes(hand[1].toUpperCase()) &&
+      (suit === "s" || suit === "o")
     );
   }
   return false;
 }
 
-/** Normalize hand to canonical format: ranks uppercase, suit lowercase */
-function normalizeHandKey(hand: string): string {
+function normalizeHand(hand: string): string {
   if (hand.length === 2) return hand.toUpperCase();
-  if (hand.length === 3) {
-    return hand[0].toUpperCase() + hand[1].toUpperCase() + hand[2].toLowerCase();
-  }
+  if (hand.length === 3) return hand[0].toUpperCase() + hand[1].toUpperCase() + hand[2].toLowerCase();
   return hand.toUpperCase();
 }
 
 /**
- * Parse a Flopzilla-style range string.
- * Supports: pairs (AA), suited (AKs), offsuit (AKo), ranges (AKs-A5s, AA-TT)
+ * Expand a single range like "AKs-A5s", "AA-TT", "K8s-K2s"
+ */
+function expandSingleRange(range: string): string[] {
+  const hands: string[] = [];
+
+  // Pair range: "AA-TT", "88-44", "33-22"
+  const pairMatch = range.match(/^([A2-9TJQKA])\2-([A2-9TJQKA])\2$/i);
+  if (pairMatch) {
+    const startIdx = rankIndex(pairMatch[1]);
+    const endIdx = rankIndex(pairMatch[2]);
+    const lo = Math.min(startIdx, endIdx);
+    const hi = Math.max(startIdx, endIdx);
+    for (let i = lo; i <= hi; i++) {
+      hands.push(`${RANKS[i]}${RANKS[i]}`);
+    }
+    return hands;
+  }
+
+  // Suited/offsuit range: "AKs-A5s", "K8s-K2s", "ATo-AJo"
+  const suitedMatch = range.match(/^([A2-9TJQKA])([A2-9TJQKA])([so])-([A2-9TJQKA])([A2-9TJQKA])([so])$/i);
+  if (suitedMatch) {
+    const firstRank = suitedMatch[1].toUpperCase();
+    const startSecond = rankIndex(suitedMatch[2]);
+    const endSecond = rankIndex(suitedMatch[4]);
+    const suit = suitedMatch[3].toLowerCase();
+    const lo = Math.min(startSecond, endSecond);
+    const hi = Math.max(startSecond, endSecond);
+    for (let i = lo; i <= hi; i++) {
+      hands.push(`${firstRank}${RANKS[i]}${suit}`);
+    }
+    return hands;
+  }
+
+  return hands;
+}
+
+/**
+ * Parse Flopzilla weighted range format.
+ * Supports: [99]K9s, [97]A9s-A2s, [93]ATs,KQs-KJs,ATo,KQo
+ * Plain hands without [XX] = 100%
  */
 export function parseFlopzilla(rangeText: string): Record<string, number> {
   const matrix: Record<string, number> = {};
-  const parts = rangeText.split(",").map((s) => s.trim());
+
+  // Remove line breaks, normalize spaces
+  const text = rangeText.replace(/\n/g, ",").replace(/\s+/g, "");
+
+  // Split by commas
+  const parts = text.split(",").filter(Boolean);
 
   for (const part of parts) {
     if (!part) continue;
 
-    // Range: "AKs-A5s", "AA-TT", "AKo-AJo", "KK-QQ", etc.
-    // Match: 2 chars + optional suit, dash, 2 chars + optional suit
-    const rangeMatch = part.match(
-      /^([A-Z2-9])([A-Z2-9])([so])?-([A-Z2-9])([A-Z2-9])([so])?$/i
-    );
-    if (rangeMatch) {
-      const s1 = rangeMatch[1].toUpperCase();
-      const s2 = rangeMatch[2].toUpperCase();
-      const sSuit = rangeMatch[3]?.toLowerCase();
-      const e1 = rangeMatch[4].toUpperCase();
-      const e2 = rangeMatch[5].toUpperCase();
-      const eSuit = rangeMatch[6]?.toLowerCase();
+    // Check for weight prefix: [99], [97], [10], etc.
+    const weightMatch = part.match(/^\[(\d{1,3})\](.+)$/);
+    let weight = 100;
+    let content = part;
 
-      let suitType: "s" | "o" | "pair";
-      if (sSuit === "s" || eSuit === "s") suitType = "s";
-      else if (sSuit === "o" || eSuit === "o") suitType = "o";
-      else if (s1 === s2 && e1 === e2) suitType = "pair";
-      else suitType = "s"; // default for ambiguous ranges
+    if (weightMatch) {
+      weight = parseInt(weightMatch[1], 10);
+      content = weightMatch[2];
+    }
 
-      if (suitType === "pair") {
-        // Pair range: AA-TT → expand from A to T
-        const hands = expandRange(s1, s1, e1, "pair");
-        for (const hand of hands) {
-          if (isValidHand(hand)) {
-            matrix[hand] = 100;
-          }
-        }
-      } else {
-        // Suited/offsuit range: AKs-A5s → first rank fixed, second rank expands
-        const hands = expandRange(s1, s2, e2, suitType);
-        for (const hand of hands) {
-          if (isValidHand(hand)) {
-            matrix[hand] = 100;
-          }
-        }
+    // Try to parse content as a range or single hand
+    // Single hand: AA, AKs, AKo, K9s, etc.
+    if (content.length === 2) {
+      const hand = normalizeHand(content);
+      if (isValidHand(hand)) {
+        matrix[hand] = weight;
+        continue;
       }
-      continue;
     }
 
-    // Single pair: "AA", "KK"
-    if (part.length === 2 && part[0].toUpperCase() === part[1].toUpperCase() && RANKS.includes(part[0].toUpperCase())) {
-      matrix[part.toUpperCase()] = 100;
-      continue;
+    if (content.length === 3) {
+      const hand = normalizeHand(content);
+      if (isValidHand(hand)) {
+        matrix[hand] = weight;
+        continue;
+      }
     }
 
-    // Suited or offsuit hand: "AKs", "AKo" → normalize to "AKs" (ranks upper, suit lower)
-    if (part.length === 3 && SUITS.includes(part[2].toLowerCase())) {
-      const normalized = part[0].toUpperCase() + part[1].toUpperCase() + part[2].toLowerCase();
-      if (isValidHand(normalized)) {
-        matrix[normalized] = 100;
+    // Range: AKs-A5s, AA-TT, K8s-K2s, etc.
+    const rangeHands = expandSingleRange(content);
+    if (rangeHands.length > 0) {
+      for (const hand of rangeHands) {
+        if (isValidHand(hand)) {
+          matrix[normalizeHand(hand)] = weight;
+        }
       }
       continue;
     }
@@ -124,7 +124,6 @@ export function parseFlopzilla(rangeText: string): Record<string, number> {
 
 /**
  * Parse Anki export format.
- * Expected: lines like "AA:100", "AKs:50", or tab-separated "AA\t100"
  */
 export function parseAnki(rangeText: string): Record<string, number> {
   const matrix: Record<string, number> = {};
@@ -133,12 +132,9 @@ export function parseAnki(rangeText: string): Record<string, number> {
   for (const line of lines) {
     if (!line || line.startsWith("#")) continue;
 
-    // Try "hand:weight" or "hand,weight" or "hand\tweight"
-    const match = line.match(
-      /^([A-Z2-9]{2}[so]?)[\s,:\t]+(\d+(?:\.\d+)?)\s*%?\s*$/i
-    );
+    const match = line.match(/^([A-Z2-9]{2}[so]?)[\s,:\t]+(\d+(?:\.\d+)?)\s*%?\s*$/i);
     if (match) {
-      const hand = normalizeHandKey(match[1]);
+      const hand = normalizeHand(match[1]);
       const weight = parseFloat(match[2]);
       if (isValidHand(hand)) {
         matrix[hand] = weight;
@@ -146,10 +142,9 @@ export function parseAnki(rangeText: string): Record<string, number> {
       continue;
     }
 
-    // Try just hand name (default 100%)
     const handOnly = line.match(/^([A-Z2-9]{2}[so]?)\s*$/i);
     if (handOnly) {
-      const hand = normalizeHandKey(handOnly[1]);
+      const hand = normalizeHand(handOnly[1]);
       if (isValidHand(hand)) {
         matrix[hand] = 100;
       }
@@ -161,24 +156,17 @@ export function parseAnki(rangeText: string): Record<string, number> {
 
 /**
  * Parse PioSolver export format.
- * Expected: comma or newline separated hands, optionally with weights.
- * Format: "AA 100, AKs 50, AKo 30" or "AA:100\nAKs:50"
  */
 export function parsePioSolver(rangeText: string): Record<string, number> {
   const matrix: Record<string, number> = {};
-
-  // Split on commas or newlines
   const parts = rangeText.split(/[,\n]+/).map((s) => s.trim());
 
   for (const part of parts) {
     if (!part) continue;
 
-    // Try "hand weight" or "hand:weight"
-    const match = part.match(
-      /^([A-Z2-9]{2}[so]?)\s*[:\s]\s*(\d+(?:\.\d+)?)\s*%?\s*$/i
-    );
+    const match = part.match(/^([A-Z2-9]{2}[so]?)\s*[:\s]\s*(\d+(?:\.\d+)?)\s*%?\s*$/i);
     if (match) {
-      const hand = normalizeHandKey(match[1]);
+      const hand = normalizeHand(match[1]);
       const weight = parseFloat(match[2]);
       if (isValidHand(hand)) {
         matrix[hand] = weight;
@@ -186,10 +174,9 @@ export function parsePioSolver(rangeText: string): Record<string, number> {
       continue;
     }
 
-    // Try just hand name (default 100%)
     const handOnly = part.match(/^([A-Z2-9]{2}[so]?)\s*$/i);
     if (handOnly) {
-      const hand = normalizeHandKey(handOnly[1]);
+      const hand = normalizeHand(handOnly[1]);
       if (isValidHand(hand)) {
         matrix[hand] = 100;
       }
@@ -201,12 +188,10 @@ export function parsePioSolver(rangeText: string): Record<string, number> {
 
 /**
  * Parse Simple Postflop export format.
- * Expected: JSON array of { hand, weight } or CSV-like format.
  */
 export function parseSimplePostflop(rangeText: string): Record<string, number> {
   const matrix: Record<string, number> = {};
 
-  // Try JSON first
   try {
     const parsed = JSON.parse(rangeText);
     if (Array.isArray(parsed)) {
@@ -214,7 +199,7 @@ export function parseSimplePostflop(rangeText: string): Record<string, number> {
         const hand = item.hand || item.Hand || item.name;
         const weight = item.weight || item.Weight || item.freq || 100;
         if (hand) {
-          const normalized = normalizeHandKey(String(hand));
+          const normalized = normalizeHand(String(hand));
           if (isValidHand(normalized)) {
             matrix[normalized] = Number(weight);
           }
@@ -223,31 +208,18 @@ export function parseSimplePostflop(rangeText: string): Record<string, number> {
       return matrix;
     }
   } catch {
-    // Not JSON, try line-based format
+    // Not JSON
   }
 
-  // Line-based: "hand weight" or "hand:weight"
   const lines = rangeText.split("\n").map((s) => s.trim());
   for (const line of lines) {
     if (!line) continue;
-
-    const match = line.match(
-      /^([A-Z2-9]{2}[so]?)\s*[:\s,]\s*(\d+(?:\.\d+)?)\s*%?\s*$/i
-    );
+    const match = line.match(/^([A-Z2-9]{2}[so]?)\s*[:\s,]\s*(\d+(?:\.\d+)?)\s*%?\s*$/i);
     if (match) {
-      const hand = normalizeHandKey(match[1]);
+      const hand = normalizeHand(match[1]);
       const weight = parseFloat(match[2]);
       if (isValidHand(hand)) {
         matrix[hand] = weight;
-      }
-      continue;
-    }
-
-    const handOnly = line.match(/^([A-Z2-9]{2}[so]?)\s*$/i);
-    if (handOnly) {
-      const hand = normalizeHandKey(handOnly[1]);
-      if (isValidHand(hand)) {
-        matrix[hand] = 100;
       }
     }
   }
@@ -257,13 +229,10 @@ export function parseSimplePostflop(rangeText: string): Record<string, number> {
 
 /**
  * Parse JSON format.
- * Expected: { "name": "...", "reference_matrix": { "AA": 100, ... } }
- * or array of such objects.
  */
 export function parseJSON(rangeText: string): Array<{ name: string; referenceMatrix: Record<string, number> }> {
   const parsed = JSON.parse(rangeText);
   const cards = Array.isArray(parsed) ? parsed : [parsed];
-
   return cards.map((c: Record<string, unknown>) => ({
     name: String((c.name as string) || "Imported Card"),
     referenceMatrix: (c.reference_matrix as Record<string, number>) || {},
