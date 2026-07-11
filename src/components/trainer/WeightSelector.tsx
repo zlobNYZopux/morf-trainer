@@ -5,51 +5,37 @@ interface WeightSelectorProps {
   onSelectWeight: (weight: number) => void;
 }
 
-const TEN_PERCENT_WEIGHTS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-const QUARTER_WEIGHTS = [25, 50, 75];
+const PRIMARY_WEIGHTS = [100, 75, 50, 25, 0];
+const SECONDARY_WEIGHTS = [90, 80, 70, 60, 40, 30, 20, 10];
 
 export function WeightSelector({
   selectedWeight,
   onSelectWeight,
 }: WeightSelectorProps) {
   return (
-    <div className="flex flex-col gap-2">
-      {/* Row 1: 10% increments */}
-      <div className="flex flex-wrap gap-1">
-        {TEN_PERCENT_WEIGHTS.map((weight) => (
+    <div className="flex gap-1">
+      {/* Primary column: 100, 75, 50, 25, 0 */}
+      <div className="flex flex-col gap-1">
+        {PRIMARY_WEIGHTS.map((weight) => (
           <button
             key={weight}
             onClick={() => onSelectWeight(weight)}
-            className={`
-              px-2 py-1 rounded text-sm font-mono transition-colors
-              ${
-                selectedWeight === weight
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-muted"
-              }
-            `}
+            className={`weight-btn ${selectedWeight === weight ? "active" : ""}`}
           >
-            {weight}
+            {weight}%
           </button>
         ))}
       </div>
 
-      {/* Row 2: 25% increments */}
-      <div className="flex flex-wrap gap-1">
-        {QUARTER_WEIGHTS.map((weight) => (
+      {/* Secondary column: 90-10 */}
+      <div className="flex flex-col gap-1">
+        {SECONDARY_WEIGHTS.map((weight) => (
           <button
             key={weight}
             onClick={() => onSelectWeight(weight)}
-            className={`
-              px-2 py-1 rounded text-sm font-mono transition-colors
-              ${
-                selectedWeight === weight
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-muted"
-              }
-            `}
+            className={`weight-btn ${selectedWeight === weight ? "active" : ""}`}
           >
-            {weight}
+            {weight}%
           </button>
         ))}
       </div>

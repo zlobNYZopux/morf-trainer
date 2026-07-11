@@ -71,12 +71,10 @@ export function ComparisonView({
 
       {/* Hand matrix in comparison mode */}
       <HandMatrix
-        matrix={{}}
-        selectedHand={null}
-        onSelectHand={() => {}}
+        matrix={userMatrix}
+        onChange={() => {}}
         mode="comparison"
         referenceMatrix={referenceMatrix}
-        userMatrix={userMatrix}
       />
     </div>
   );

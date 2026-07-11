@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { HandMatrix } from "@/components/trainer/HandMatrix";
+import { WeightSelector } from "@/components/trainer/WeightSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,15 +39,12 @@ export default function CardEditor({ card, onSave, onCancel }: CardEditorProps) 
     stack: card.stack || 100,
     referenceMatrix: card.referenceMatrix || { ...EMPTY_MATRIX },
   });
-  const [selectedHand, setSelectedHand] = useState<string | null>(null);
+  const [selectedWeight, setSelectedWeight] = useState<number>(100);
 
-  const handleMatrixChange = (hand: string, value: number) => {
+  const handleMatrixChange = (matrix: Record<string, number>) => {
     setFormData((prev) => ({
       ...prev,
-      referenceMatrix: {
-        ...prev.referenceMatrix,
-        [hand]: value,
-      },
+      referenceMatrix: matrix,
     }));
   };
 
@@ -179,18 +177,25 @@ export default function CardEditor({ card, onSave, onCancel }: CardEditorProps) 
               Offsuit
             </span>
             <span className="text-muted-foreground/60">
-              Click to toggle, scroll to adjust
+              Drag to paint cells with selected weight
             </span>
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4 overflow-x-auto">
-          <HandMatrix
-            matrix={formData.referenceMatrix}
-            selectedHand={selectedHand}
-            onSelectHand={setSelectedHand}
-            mode="editable"
-            onMatrixChange={handleMatrixChange}
-          />
+        <div className="flex gap-3 items-start">
+          <div className="rounded-lg border border-border bg-card p-4 overflow-x-auto">
+            <HandMatrix
+              matrix={formData.referenceMatrix}
+              onChange={handleMatrixChange}
+              mode="input"
+              selectedWeight={selectedWeight}
+            />
+          </div>
+          <div className="pt-4">
+            <WeightSelector
+              selectedWeight={selectedWeight}
+              onSelectWeight={setSelectedWeight}
+            />
+          </div>
         </div>
       </div>
 

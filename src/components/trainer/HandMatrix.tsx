@@ -1,162 +1,212 @@
 "use client";
 
-import { useCallback } from "react";
-
-interface HandMatrixProps {
-  matrix: Record<string, number>;
-  selectedHand: string | null;
-  onSelectHand: (hand: string) => void;
-  mode: "input" | "comparison" | "editable";
-  referenceMatrix?: Record<string, number>;
-  userMatrix?: Record<string, number>;
-  onMatrixChange?: (hand: string, value: number) => void;
-}
+import { useCallback, useRef, useState } from "react";
 
 const RANKS = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
 
+function getHandName(row: number, col: number): string {
+  if (row === col) return `${RANKS[row]}${RANKS[row]}`;
+  if (row < col) return `${RANKS[row]}${RANKS[col]}s`;
+  return `${RANKS[col]}${RANKS[row]}o`;
+}
+
+interface HandMatrixProps {
+  matrix: Record<string, number>;
+  onChange: (matrix: Record<string, number>) => void;
+  mode: "input" | "comparison";
+  referenceMatrix?: Record<string, number>;
+  selectedWeight?: number;
+  action?: "fold" | "call" | "raise" | "check";
+}
+
 export function HandMatrix({
   matrix,
-  selectedHand,
-  onSelectHand,
+  onChange,
   mode,
   referenceMatrix,
-  userMatrix,
-  onMatrixChange,
+  selectedWeight = 100,
+  action = "raise",
 }: HandMatrixProps) {
-  const getHandName = useCallback((row: number, col: number): string => {
-    if (row === col) {
-      return `${RANKS[row]}${RANKS[row]}`;
-    }
-    if (row < col) {
-      return `${RANKS[row]}${RANKS[col]}s`;
-    }
-    return `${RANKS[col]}${RANKS[row]}o`;
+  const isDragging = useRef(false);
+  const [hoverCell, setHoverCell] = useState<string | null>(null);
+
+  const getCellWeight = useCallback(
+    (handName: string): number => {
+      return matrix[handName] ?? 0;
+    },
+    [matrix]
+  );
+
+  const getComparisonStatus = useCallback(
+    (handName: string): "correct" | "wrong" | "missing" | "extra" | null => {
+      if (mode !== "comparison" || !referenceMatrix) return null;
+      const refWeight = referenceMatrix[handName] ?? 0;
+      const userWeight = matrix[handName] ?? 0;
+      if (refWeight === userWeight) return "correct";
+      if (refWeight > 0 && userWeight === 0) return "missing";
+      if (refWeight === 0 && userWeight > 0) return "extra";
+      return "wrong";
+    },
+    [mode, referenceMatrix, matrix]
+  );
+
+  const paintCell = useCallback(
+    (handName: string) => {
+      if (mode !== "input") return;
+      onChange({ ...matrix, [handName]: selectedWeight });
+    },
+    [mode, matrix, selectedWeight, onChange]
+  );
+
+  const handleMouseDown = useCallback(
+    (handName: string) => {
+      isDragging.current = true;
+      paintCell(handName);
+    },
+    [paintCell]
+  );
+
+  const handleMouseEnter = useCallback(
+    (handName: string) => {
+      setHoverCell(handName);
+      if (isDragging.current) {
+        paintCell(handName);
+      }
+    },
+    [paintCell]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    isDragging.current = false;
   }, []);
 
-  const getCellWeight = (row: number, col: number): number => {
-    const handName = getHandName(row, col);
-    if (mode === "comparison" && referenceMatrix && userMatrix) {
-      return userMatrix[handName] ?? 0;
+  // Stats for bottom bar
+  const allHands: string[] = [];
+  for (let r = 0; r < 13; r++) {
+    for (let c = 0; c < 13; c++) {
+      allHands.push(getHandName(r, c));
     }
-    return matrix[handName] ?? 0;
-  };
+  }
 
-  const getComparisonStatus = (row: number, col: number): "correct" | "wrong" | "missing" | "extra" | null => {
-    if (mode !== "comparison" || !referenceMatrix || !userMatrix) return null;
-    const handName = getHandName(row, col);
-    const refWeight = referenceMatrix[handName] ?? 0;
-    const userWeight = userMatrix[handName] ?? 0;
+  const handsWithWeight = allHands.filter((h) => (matrix[h] ?? 0) > 0);
+  const totalCombos = handsWithWeight.reduce((sum, h) => {
+    const w = matrix[h] ?? 0;
+    const combos = getComboCount(h);
+    return sum + Math.round((w / 100) * combos);
+  }, 0);
 
-    if (refWeight === userWeight) return "correct";
-    if (refWeight > 0 && userWeight === 0) return "missing";
-    if (refWeight === 0 && userWeight > 0) return "extra";
-    return "wrong";
-  };
+  const foldPercent = Math.round(
+    ((allHands.length - handsWithWeight.length) / allHands.length) * 100
+  );
+  const raisePercent = 100 - foldPercent;
 
-  const getWeightColor = (weight: number, isPair: boolean, isSuited: boolean): string => {
-    if (weight === 0) return "bg-muted text-muted-foreground";
-    if (isPair) return "bg-primary/20 text-primary border-primary/30";
-    if (isSuited) return "bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30";
-    return "bg-orange-500/20 text-orange-700 dark:text-orange-400 border-orange-500/30";
-  };
-
-  const getComparisonClass = (status: "correct" | "wrong" | "missing" | "extra" | null): string => {
-    if (!status) return "";
-    switch (status) {
-      case "correct": return "bg-green-500/20 border-green-500/30 text-green-700 dark:text-green-400";
-      case "wrong": return "bg-yellow-500/20 border-yellow-500/30 text-yellow-700 dark:text-yellow-400";
-      case "missing": return "bg-red-500/20 border-red-500/30 text-red-700 dark:text-red-400";
-      case "extra": return "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400";
-    }
-  };
-
-  const handleCellClick = (handName: string) => {
-    if (mode === "editable" && onMatrixChange) {
-      const currentWeight = matrix[handName] ?? 0;
-      onMatrixChange(handName, currentWeight > 0 ? 0 : 100);
-    }
-    onSelectHand(handName);
-  };
-
-  const handleWheel = (handName: string, e: React.WheelEvent) => {
-    if (mode !== "editable" || !onMatrixChange) return;
-    e.preventDefault();
-    const currentWeight = matrix[handName] ?? 0;
-    const delta = e.deltaY < 0 ? 10 : -10;
-    const newWeight = Math.max(0, Math.min(100, currentWeight + delta));
-    onMatrixChange(handName, newWeight);
-  };
+  const actionLabel =
+    action === "fold"
+      ? "Fold"
+      : action === "call"
+      ? "Call"
+      : action === "check"
+      ? "Check"
+      : "Raise";
 
   return (
-    <div className="flex flex-col items-center gap-1 overflow-x-auto">
-      {/* Column headers */}
-      <div className="grid gap-px" style={{ gridTemplateColumns: `2.25rem repeat(13, 2.75rem)` }}>
+    <div className="flex flex-col items-center select-none">
+      {/* Matrix grid */}
+      <div
+        className="grid gap-0"
+        style={{
+          gridTemplateColumns: `1.75rem repeat(13, 2.5rem)`,
+          gridTemplateRows: `1.25rem repeat(13, 2.5rem)`,
+        }}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {/* Top-left corner */}
         <div />
+
+        {/* Column headers */}
         {RANKS.map((rank) => (
           <div
-            key={rank}
-            className="flex items-center justify-center font-mono text-xs font-bold text-muted-foreground"
+            key={`col-${rank}`}
+            className="flex items-center justify-center text-[10px] font-bold text-gray-500"
           >
             {rank}
           </div>
         ))}
+
+        {/* Rows */}
+        {RANKS.map((rowRank, rowIdx) => (
+          <>
+            {/* Row header */}
+            <div
+              key={`row-${rowRank}`}
+              className="flex items-center justify-center text-[10px] font-bold text-gray-500"
+            >
+              {rowRank}
+            </div>
+
+            {/* Cells */}
+            {RANKS.map((colRank, colIdx) => {
+              const handName = getHandName(rowIdx, colIdx);
+              const weight = getCellWeight(handName);
+              const isPair = rowIdx === colIdx;
+              const isSuited = rowIdx < colIdx && !isPair;
+              const status = getComparisonStatus(handName);
+
+              let cellClass = "hand-cell";
+              if (isPair) cellClass += " pair";
+              if (status) cellClass += ` compare-${status}`;
+
+              return (
+                <div
+                  key={handName}
+                  className={cellClass}
+                  onMouseDown={() => handleMouseDown(handName)}
+                  onMouseEnter={() => handleMouseEnter(handName)}
+                  title={`${handName}: ${weight}%`}
+                >
+                  {weight > 0 && (
+                    <div
+                      className="hand-cell-fill"
+                      style={{ height: `${weight}%` }}
+                    />
+                  )}
+                  <span
+                    className={`hand-cell-label ${isSuited ? "suited" : ""}`}
+                  >
+                    {handName}
+                  </span>
+                </div>
+              );
+            })}
+          </>
+        ))}
       </div>
 
-      {/* Matrix rows */}
-      {RANKS.map((rowRank, rowIdx) => (
-        <div
-          key={rowRank}
-          className="grid gap-px"
-          style={{ gridTemplateColumns: `2.25rem repeat(13, 2.75rem)` }}
-        >
-          <div className="flex items-center justify-center font-mono text-xs font-bold text-muted-foreground">
-            {rowRank}
-          </div>
-
-          {RANKS.map((colRank, colIdx) => {
-            const handName = getHandName(rowIdx, colIdx);
-            const weight = getCellWeight(rowIdx, colIdx);
-            const isSelected = selectedHand === handName;
-            const status = getComparisonStatus(rowIdx, colIdx);
-            const isPair = rowIdx === colIdx;
-            const isSuited = rowIdx < colIdx && !isPair;
-            const colorClass = status
-              ? getComparisonClass(status)
-              : getWeightColor(weight, isPair, isSuited);
-
-            return (
-              <button
-                key={handName}
-                onClick={() => handleCellClick(handName)}
-                onWheel={(e) => handleWheel(handName, e)}
-                className={`
-                  h-11 flex flex-col items-center justify-center
-                  border border-border rounded-md transition-all duration-100
-                  ${isSelected ? "ring-2 ring-primary shadow-md z-10" : ""}
-                  ${colorClass}
-                  ${mode === "editable" ? "cursor-pointer hover:brightness-90" : "cursor-pointer hover:brightness-110"}
-                `}
-                title={mode === "editable" ? `${handName}: ${weight}% (click to toggle, scroll to adjust)` : handName}
-              >
-                <span
-                  className={`font-mono text-[10px] leading-tight ${
-                    isPair
-                      ? "font-bold"
-                      : isSuited
-                      ? "font-medium"
-                      : "opacity-80"
-                  }`}
-                >
-                  {handName}
-                </span>
-                <span className="font-mono text-[8px] leading-tight opacity-70">
-                  {weight}%
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      ))}
+      {/* Bottom stats bar */}
+      <div className="mt-3 flex items-center gap-4 text-xs text-gray-400 font-mono">
+        <span>
+          <span className="text-gray-500">{action} </span>
+          <span className="text-white font-semibold">{raisePercent}%</span>
+        </span>
+        <span>
+          <span className="text-gray-500">Fold </span>
+          <span className="text-white font-semibold">{foldPercent}%</span>
+        </span>
+        <span className="text-gray-600">|</span>
+        <span>
+          <span className="text-gray-500">combos: </span>
+          <span className="text-white font-semibold">{totalCombos}</span>
+        </span>
+      </div>
     </div>
   );
+}
+
+function getComboCount(hand: string): number {
+  const isPair = hand.length === 2;
+  const isSuited = hand.endsWith("s");
+  if (isPair) return 6;
+  if (isSuited) return 4;
+  return 12;
 }
