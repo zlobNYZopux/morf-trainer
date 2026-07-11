@@ -29,6 +29,7 @@ export function HandMatrix({
 }: HandMatrixProps) {
   const isDragging = useRef(false);
   const [hoverCell, setHoverCell] = useState<string | null>(null);
+  const [fillVertical, setFillVertical] = useState(true);
 
   const getCellWeight = useCallback(
     (handName: string): number => {
@@ -53,7 +54,11 @@ export function HandMatrix({
   const paintCell = useCallback(
     (handName: string) => {
       if (mode !== "input") return;
-      onChange({ ...matrix, [handName]: selectedWeight });
+      const currentWeight = matrix[handName] ?? 0;
+      // Toggle: if same weight, reset to 0
+      const newWeight = currentWeight === selectedWeight ? 0 : selectedWeight;
+      const newMatrix = { ...matrix, [handName]: newWeight };
+      onChange(newMatrix);
     },
     [mode, matrix, selectedWeight, onChange]
   );
@@ -115,8 +120,8 @@ export function HandMatrix({
       <div
         className="grid gap-px"
         style={{
-          gridTemplateColumns: `2rem repeat(13, 2.75rem)`,
-          gridTemplateRows: `1.5rem repeat(13, 2.75rem)`,
+          gridTemplateColumns: `2rem repeat(13, 3rem)`,
+          gridTemplateRows: `1.5rem repeat(13, 3rem)`,
         }}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
@@ -165,11 +170,14 @@ export function HandMatrix({
                   title={`${handName}: ${weight}%`}
                 >
                   <div
-                    className="hand-cell-fill"
-                    style={{ height: `${weight}%` }}
+                    className={`hand-cell-fill ${fillVertical ? "fill-vertical" : "fill-horizontal"}`}
+                    style={fillVertical 
+                      ? { "--fill-h": `${weight}%` } as React.CSSProperties 
+                      : { "--fill-w": `${weight}%` } as React.CSSProperties
+                    }
                   />
                   <span
-                    className={`hand-cell-label ${isSuited ? "suited" : ""}`}
+                    className="hand-cell-label"
                   >
                     {handName}
                   </span>
@@ -195,6 +203,27 @@ export function HandMatrix({
           <span className="text-[#94a3b8]">combos: </span>
           <span className="text-[#e2e8f0] font-semibold">{totalCombos}</span>
         </span>
+        {mode === "input" && (
+          <>
+            <button
+              onClick={() => setFillVertical(!fillVertical)}
+              className="ml-2 px-3 py-1 rounded bg-[#333] hover:bg-[#444] text-[#94a3b8] hover:text-white text-xs transition-colors"
+              title="Toggle fill direction"
+            >
+              {fillVertical ? "↕" : "↔"}
+            </button>
+            <button
+              onClick={() => {
+                const empty: Record<string, number> = {};
+                allHands.forEach((h) => (empty[h] = 0));
+                onChange(empty);
+              }}
+              className="px-3 py-1 rounded bg-[#333] hover:bg-[#444] text-[#94a3b8] hover:text-white text-xs transition-colors"
+            >
+              Reset
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

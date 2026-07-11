@@ -5,7 +5,7 @@ interface WeightSelectorProps {
   onSelectWeight: (weight: number) => void;
 }
 
-const WEIGHTS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0];
+const WEIGHTS = [100, 90, 75, 70, 60, 50, 40, 30, 25, 20, 10, 0];
 
 export function WeightSelector({
   selectedWeight,

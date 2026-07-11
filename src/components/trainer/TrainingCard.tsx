@@ -36,6 +36,16 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
   const [showAnswer, setShowAnswer] = useState(false);
   const [rangeText, setRangeText] = useState("");
 
+  // Determine action from question text
+  const getAction = (): "fold" | "call" | "raise" | "check" => {
+    const q = card.question.toLowerCase();
+    if (q.includes("кол") || q.includes("колиру")) return "call";
+    if (q.includes("фолд") || q.includes("сброс")) return "fold";
+    if (q.includes("чек") || q.includes("чекаю")) return "check";
+    return "raise";
+  };
+  const action = getAction();
+
   const handleMatrixChange = (matrix: Record<string, number>) => {
     setUserMatrix(matrix);
   };
@@ -90,7 +100,7 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
                 onChange={handleMatrixChange}
                 mode="input"
                 selectedWeight={selectedWeight}
-                action="raise"
+                action={action}
               />
             )}
             {showAnswer && (

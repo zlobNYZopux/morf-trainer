@@ -437,12 +437,23 @@
 
 .hand-cell-fill {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   background: #E8834A;
   z-index: 0;
   pointer-events: none;
+}
+
+.hand-cell-fill.fill-vertical {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--fill-h, 0%);
+}
+
+.hand-cell-fill.fill-horizontal {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--fill-w, 0%);
 }
 
 .hand-cell-label {
@@ -450,18 +461,15 @@
   z-index: 1;
   pointer-events: none;
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
   line-height: 1;
-  color: #e2e8f0;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-}
-
-.hand-cell-label.suited {
-  color: #4ade80;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.7);
 }
 
 .hand-cell.pair .hand-cell-label {
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .hand-cell.compare-correct {
