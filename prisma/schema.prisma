@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?
+  image         String?
+  tier          String    @default("free")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  decks         UserDeck[]
+  progress      UserProgress[]
+  reviews       ReviewHistory[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model Deck {
+  id          String   @id @default(cuid())
+  name        String
+  gameType    String
+  description String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  cards       Card[]
+  userDecks   UserDeck[]
+}
+
+model Card {
+  id              String   @id @default(cuid())
+  deckId          String
+  name            String
+  question        String
+  heroPosition    String
+  villainPosition String?
+  heroStack       Int      @default(100)
+  villainStack    Int      @default(100)
+  buttonPosition  String?
+  blinds          Json     @default("{\"small\": 0.5, \"big\": 1}")
+  actionHistory   Json     @default("[]")
+  referenceMatrix Json
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deck     Deck           @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  progress UserProgress[]
+  reviews  ReviewHistory[]
+}
+
+model UserDeck {
+  id        String   @id @default(cuid())
+  userId    String
+  deckId    String
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deck Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  @@unique([userId, deckId])
+}
+
+model UserProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  cardId          String
+  easeFactor      Float    @default(2.5)
+  intervalDays    Int      @default(0)
+  repetitions     Int      @default(0)
+  nextReview      DateTime
+  lastReview      DateTime?
+  totalReviews    Int      @default(0)
+  correctReviews  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  @@unique([userId, cardId])
+}
+
+model ReviewHistory {
+  id             String   @id @default(cuid())
+  userId         String
+  cardId         String
+  userMatrix     Json
+  accuracy       Float
+  responseTimeMs Int?
+  rating         String
+  createdAt      DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
