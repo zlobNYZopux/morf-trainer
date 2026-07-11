@@ -91,15 +91,15 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
       {/* LEFT: Poker Table - 40% */}
       <div className="w-[40%] flex flex-col border-r border-[var(--border)]">
         {/* Action history bar - above table, centered, large */}
-        <div className="px-4 py-3 border-b border-[var(--border)] bg-[#0a0c10]">
-          <div className="flex items-center justify-center gap-2 flex-wrap text-sm font-mono">
+        <div className="px-4 py-4 border-b border-[var(--border)] bg-[#0a0c10]">
+          <div className="flex items-center justify-center gap-3 flex-wrap text-base font-mono">
             {card.table_state.villainPositions.map((v, i) => (
               <span key={i} className="flex items-center gap-1.5 whitespace-nowrap">
-                <span className="text-[#94a3b8] font-semibold">{v.position}</span>
-                <span className="text-[#64748b]">{v.stack}</span>
+                <span className="text-base text-[#94a3b8] font-semibold">{v.position}</span>
+                <span className="text-sm text-[#64748b]">{v.stack}</span>
                 <span
                   className={`
-                    px-2 py-1 rounded-md font-bold text-xs
+                    px-3 py-1.5 rounded-md font-bold text-sm
                     ${
                       v.action === "fold"
                         ? "bg-[#1a1d27] text-[#475569] border border-[#333]"
@@ -117,10 +117,10 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
                 </span>
               </span>
             ))}
-            <span className="text-[#333] mx-1">|</span>
+            <span className="text-[#333] mx-2 text-lg">|</span>
             <span className="flex items-center gap-1.5 whitespace-nowrap">
-              <span className="text-[#22c55e] font-bold">{card.table_state.heroPosition}</span>
-              <span className="text-[#94a3b8]">{card.table_state.heroStack}</span>
+              <span className="text-[#22c55e] font-bold text-lg">{card.table_state.heroPosition}</span>
+              <span className="text-[#94a3b8] text-base">{card.table_state.heroStack}</span>
             </span>
           </div>
         </div>
