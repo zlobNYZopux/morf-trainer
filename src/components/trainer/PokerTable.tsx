@@ -5,8 +5,6 @@ interface PlayerSeat {
   stack: number;
   action?: string;
   folded?: boolean;
-  isHero?: boolean;
-  isActive?: boolean;
 }
 
 interface PokerTableProps {
@@ -16,19 +14,19 @@ interface PokerTableProps {
   blinds: { small: number; big: number };
   heroStack: number;
   heroAction?: string;
-  situation?: string; // e.g. "BB vs. UTG, SRP, 100bb"
+  situation?: string;
   pot?: number;
   random?: number;
 }
 
-// 6-max positions (clockwise from top-left)
+// 6-max positions around oval (like PokerStars)
 const SEAT_6MAX: Record<string, { x: number; y: number }> = {
-  UTG: { x: 30, y: 75 },
-  MP: { x: 12, y: 50 },
-  CO: { x: 30, y: 25 },
-  BTN: { x: 70, y: 25 },
-  SB: { x: 88, y: 50 },
-  BB: { x: 70, y: 75 },
+  UTG: { x: 28, y: 78 },
+  MP: { x: 10, y: 50 },
+  CO: { x: 28, y: 22 },
+  BTN: { x: 72, y: 22 },
+  SB: { x: 90, y: 50 },
+  BB: { x: 72, y: 78 },
 };
 
 export function PokerTable({
@@ -42,7 +40,6 @@ export function PokerTable({
   pot,
   random,
 }: PokerTableProps) {
-  // Build all 6 seats
   const allPositions = ["UTG", "MP", "CO", "BTN", "SB", "BB"];
   const villainMap = new Map(villainPositions.map((v) => [v.position, v]));
 
@@ -61,120 +58,175 @@ export function PokerTable({
   });
 
   return (
-    <div className="relative w-full h-full min-h-[380px] select-none">
-      {/* Oval table outline */}
-      <div
-        className="absolute"
-        style={{
-          left: "10%",
-          right: "10%",
-          top: "10%",
-          bottom: "10%",
-          border: "2px solid #333",
-          borderRadius: "50%",
-        }}
-      />
+    <div className="relative w-full h-full flex items-center justify-center">
+      {/* Outer container - fixed size like poker client */}
+      <div className="relative" style={{ width: "420px", height: "320px" }}>
+        {/* Dark background / rail */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: "linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #111 100%)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.8), inset 0 2px 8px rgba(255,255,255,0.05)",
+          }}
+        />
 
-      {/* Center info */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10">
+        {/* Green felt */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: "20px",
+            background: "radial-gradient(ellipse at 40% 40%, #1d7a3a 0%, #15642d 40%, #0d4d20 80%, #083315 100%)",
+            boxShadow: "inset 0 4px 20px rgba(0,0,0,0.4)",
+          }}
+        />
+
+        {/* Inner felt edge */}
+        <div
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            inset: "22px",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
+        />
+
+        {/* Situation text */}
         {situation && (
-          <div className="text-xs text-[#64748b] mb-2 font-mono">{situation}</div>
+          <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-center">
+            <div className="text-[11px] text-[rgba(255,255,255,0.5)] font-mono whitespace-nowrap">
+              {situation}
+            </div>
+          </div>
         )}
+
+        {/* Pot */}
         {pot !== undefined && pot > 0 && (
-          <div className="text-sm text-[#e8834A] font-semibold">{pot} bb</div>
+          <div className="absolute top-[52%] left-1/2 -translate-x-1/2 z-10 text-center">
+            <div className="text-sm font-bold text-[#e8834A]">{pot} bb</div>
+          </div>
         )}
-        {/* Card backs placeholder */}
-        <div className="flex justify-center gap-1 mt-2">
-          {[1, 2, 3, 4, 5].map((i) => (
+
+        {/* Card backs in center */}
+        <div className="absolute top-[58%] left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="w-6 h-8 rounded-sm bg-[#1a1d27] border border-[#333] flex items-center justify-center"
-            >
-              <span className="text-[8px] text-[#475569] font-bold">W</span>
-            </div>
+              className="rounded-sm"
+              style={{
+                width: "22px",
+                height: "32px",
+                background: "linear-gradient(135deg, #8b7355 0%, #6b5a3e 50%, #4a3f2a 100%)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+              }}
+            />
           ))}
         </div>
-      </div>
 
-      {/* Blinds */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 text-[10px] text-[#475569] font-mono">
-        {blinds.small}/{blinds.big}
-      </div>
-
-      {/* RNG */}
-      {random !== undefined && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 text-[10px] text-[#475569] font-mono">
-          🎲 {random}
+        {/* Blinds */}
+        <div className="absolute top-[38%] left-1/2 -translate-x-1/2 z-10 text-[10px] text-[rgba(255,255,255,0.3)] font-mono">
+          {blinds.small}/{blinds.big}
         </div>
-      )}
 
-      {/* Seats */}
-      {seats.map((seat) => {
-        const isButton = seat.position === buttonPosition;
+        {/* RNG */}
+        {random !== undefined && (
+          <div className="absolute bottom-[8px] left-1/2 -translate-x-1/2 z-10 text-[10px] text-[rgba(255,255,255,0.3)] font-mono">
+            🎲 {random}
+          </div>
+        )}
 
-        return (
-          <div
-            key={seat.position}
-            className="absolute -translate-x-1/2 -translate-y-1/2 z-20"
-            style={{
-              left: `${seat.coords.x}%`,
-              top: `${seat.coords.y}%`,
-            }}
-          >
-            {/* Button indicator */}
-            {isButton && (
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white text-[8px] font-bold text-black flex items-center justify-center z-30 shadow-md">
-                D
-              </div>
-            )}
+        {/* Seats */}
+        {seats.map((seat) => {
+          const isButton = seat.position === buttonPosition;
 
-            {/* Seat circle */}
+          return (
             <div
-              className={`
-                relative flex flex-col items-center justify-center
-                w-14 h-14 rounded-full
-                transition-all duration-200
-                ${
-                  seat.isHero
-                    ? "bg-[#1a1d27] border-2 border-[#22c55e] text-white"
-                    : seat.isActive
-                    ? "bg-[#1a1d27] border-2 border-[#e8834A] text-white"
-                    : "bg-[#1a1d27] border border-[#333] text-[#64748b]"
-                }
-              `}
+              key={seat.position}
+              className="absolute -translate-x-1/2 -translate-y-1/2 z-20"
+              style={{
+                left: `${seat.coords.x}%`,
+                top: `${seat.coords.y}%`,
+              }}
             >
-              <span className="text-[11px] font-bold tracking-wide">
-                {seat.position}
-              </span>
-              <span className="text-[9px] font-mono opacity-60">
-                {seat.stack}
-              </span>
-            </div>
-
-            {/* Action badge */}
-            {seat.action && !seat.folded && seat.action !== "fold" && (
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                <span
-                  className={`
-                    text-[8px] px-1.5 py-0.5 rounded-full font-semibold
-                    ${
-                      seat.action.includes("3bet") || seat.action.includes("4bet")
-                        ? "bg-[#e8834A]/20 text-[#e8834A]"
-                        : seat.action.includes("raise") || seat.action.includes("open")
-                        ? "bg-[#f59e0b]/20 text-[#f59e0b]"
-                        : seat.action.includes("call")
-                        ? "bg-[#22c55e]/20 text-[#22c55e]"
-                        : "bg-[#242836] text-[#94a3b8]"
-                    }
-                  `}
+              {/* Button indicator */}
+              {isButton && (
+                <div
+                  className="absolute -top-1 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center rounded-full"
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    background: "linear-gradient(135deg, #fff 0%, #ddd 100%)",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+                  }}
                 >
-                  {seat.action}
+                  <span className="text-[8px] font-bold text-[#333]">D</span>
+                </div>
+              )}
+
+              {/* Card backs */}
+              <div className="flex gap-0.5 mb-1 justify-center">
+                {[1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="rounded-sm"
+                    style={{
+                      width: "18px",
+                      height: "24px",
+                      background: seat.folded
+                        ? "linear-gradient(135deg, #4a4a4a 0%, #333 100%)"
+                        : "linear-gradient(135deg, #8b7355 0%, #6b5a3e 50%, #4a3f2a 100%)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      opacity: seat.folded ? 0.4 : 1,
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Seat label */}
+              <div
+                className={`
+                  flex flex-col items-center rounded-md px-2.5 py-1 min-w-[56px]
+                  ${
+                    seat.isHero
+                      ? "bg-[#1a1d27] border border-[#22c55e]"
+                      : seat.isActive
+                      ? "bg-[#1a1d27] border border-[#e8834A]"
+                      : "bg-[#1a1d27] border border-[#333]"
+                  }
+                `}
+              >
+                <span className="text-[11px] font-bold text-white leading-tight">
+                  {seat.position}
+                </span>
+                <span className="text-[10px] font-mono text-[#94a3b8] leading-tight">
+                  {seat.stack}
                 </span>
               </div>
-            )}
-          </div>
-        );
-      })}
+
+              {/* Action badge */}
+              {seat.action && !seat.folded && seat.action !== "fold" && (
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                  <span
+                    className={`
+                      text-[9px] px-1.5 py-0.5 rounded font-semibold
+                      ${
+                        seat.action.includes("3bet") || seat.action.includes("4bet")
+                          ? "bg-[#e8834A] text-white"
+                          : seat.action.includes("raise") || seat.action.includes("open")
+                          ? "bg-[#f59e0b] text-white"
+                          : seat.action.includes("call")
+                          ? "bg-[#22c55e] text-white"
+                          : "bg-[#333] text-[#94a3b8]"
+                      }
+                    `}
+                  >
+                    {seat.action}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

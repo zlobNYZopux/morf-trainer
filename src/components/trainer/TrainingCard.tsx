@@ -65,19 +65,79 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
     onAnswer(userMatrix, rating);
   };
 
+  // Build action history string
+  const getActionHistory = () => {
+    const parts: string[] = [];
+    const allPositions = ["UTG", "MP", "CO", "BTN", "SB", "BB"];
+    for (const pos of allPositions) {
+      if (pos === card.table_state.heroPosition) {
+        parts.push(`${pos} ${card.table_state.heroStack}`);
+      } else {
+        const v = card.table_state.villainPositions.find((vp) => vp.position === pos);
+        if (v) {
+          parts.push(`${pos} ${v.stack}`);
+        } else {
+          parts.push(`${pos} 100`);
+        }
+      }
+    }
+    return parts;
+  };
+
+  const actionParts = getActionHistory();
+
   return (
     <div className="flex h-[calc(100vh-5rem)] bg-[var(--background)] overflow-hidden">
       {/* LEFT: Poker Table - 40% */}
-      <div className="w-[40%] flex items-center justify-center p-4 border-r border-[var(--border)]">
-        <PokerTable
-          heroPosition={card.table_state.heroPosition}
-          villainPositions={card.table_state.villainPositions}
-          buttonPosition={card.table_state.buttonPosition}
-          blinds={card.table_state.blinds}
-          heroStack={card.table_state.heroStack}
-          pot={card.table_state.pot}
-          random={card.table_state.random}
-        />
+      <div className="w-[40%] flex flex-col border-r border-[var(--border)]">
+        {/* Action history bar - above table, centered, large */}
+        <div className="px-4 py-3 border-b border-[var(--border)] bg-[#0a0c10]">
+          <div className="flex items-center justify-center gap-2 flex-wrap text-sm font-mono">
+            {card.table_state.villainPositions.map((v, i) => (
+              <span key={i} className="flex items-center gap-1.5 whitespace-nowrap">
+                <span className="text-[#94a3b8] font-semibold">{v.position}</span>
+                <span className="text-[#64748b]">{v.stack}</span>
+                <span
+                  className={`
+                    px-2 py-1 rounded-md font-bold text-xs
+                    ${
+                      v.action === "fold"
+                        ? "bg-[#1a1d27] text-[#475569] border border-[#333]"
+                        : v.action?.includes("3bet") || v.action?.includes("4bet")
+                        ? "bg-[#e8834A]/20 text-[#e8834A] border border-[#e8834A]/30"
+                        : v.action?.includes("raise") || v.action?.includes("open")
+                        ? "bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30"
+                        : v.action?.includes("call")
+                        ? "bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30"
+                        : "bg-[#1a1d27] text-[#64748b] border border-[#333]"
+                    }
+                  `}
+                >
+                  {v.action === "fold" ? "Fold" : v.action}
+                </span>
+              </span>
+            ))}
+            <span className="text-[#333] mx-1">|</span>
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
+              <span className="text-[#22c55e] font-bold">{card.table_state.heroPosition}</span>
+              <span className="text-[#94a3b8]">{card.table_state.heroStack}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <PokerTable
+            heroPosition={card.table_state.heroPosition}
+            villainPositions={card.table_state.villainPositions}
+            buttonPosition={card.table_state.buttonPosition}
+            blinds={card.table_state.blinds}
+            heroStack={card.table_state.heroStack}
+            situation={`${card.table_state.heroPosition} vs. ${card.table_state.villainPositions[0]?.position || '?'}${card.table_state.random ? `, ${card.table_state.random}` : ''}`}
+            pot={card.table_state.pot}
+            random={card.table_state.random}
+          />
+        </div>
       </div>
 
       {/* RIGHT: Matrix + Weights - 60% */}

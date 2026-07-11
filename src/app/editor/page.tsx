@@ -127,8 +127,10 @@ export default function EditorPage() {
       question: "",
       heroPosition: "BTN",
       villainPosition: "MP",
-      action: "open",
-      stack: 100,
+      heroStack: 100,
+      villainStack: 100,
+      blinds: { small: 0.5, big: 1 },
+      actions: [],
       referenceMatrix: c.referenceMatrix,
     }));
 
@@ -207,8 +209,10 @@ export default function EditorPage() {
                       question: "",
                       heroPosition: "BTN",
                       villainPosition: "MP",
-                      action: "open",
-                      stack: 100,
+                      heroStack: 100,
+                      villainStack: 100,
+                      blinds: { small: 0.5, big: 1 },
+                      actions: [],
                       referenceMatrix: {},
                     })
                   }
@@ -231,7 +235,7 @@ export default function EditorPage() {
                       <div className="min-w-0">
                         <p className="font-medium">{card.name || "Untitled Card"}</p>
                         <p className="text-sm text-muted-foreground">
-                          {card.heroPosition} vs {card.villainPosition} — {card.action}
+                          {card.heroPosition} vs {card.villainPosition}
                           {card.question && ` — ${card.question}`}
                         </p>
                       </div>

@@ -171,9 +171,9 @@ export function HandMatrix({
                 >
                   <div
                     className={`hand-cell-fill ${fillVertical ? "fill-vertical" : "fill-horizontal"}`}
-                    style={fillVertical 
-                      ? { "--fill-h": `${weight}%` } as React.CSSProperties 
-                      : { "--fill-w": `${weight}%` } as React.CSSProperties
+                    style={fillVertical
+                      ? { height: `${weight}%` }
+                      : { width: `${weight}%` }
                     }
                   />
                   <span
