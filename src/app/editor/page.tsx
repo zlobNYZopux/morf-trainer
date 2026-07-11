@@ -7,7 +7,7 @@ import CardEditor from '@/components/editor/CardEditor';
 import ImportDialog from '@/components/editor/ImportDialog';
 
 interface Card {
-  id: string;
+  id?: string;
   name: string;
   question: string;
   heroPosition: string;
@@ -225,7 +225,7 @@ export default function EditorPage() {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDeleteCard(card.id)}
+                          onClick={() => card.id && handleDeleteCard(card.id)}
                           className="px-3 py-1.5 text-sm rounded-lg text-destructive hover:bg-destructive/10"
                         >
                           Delete

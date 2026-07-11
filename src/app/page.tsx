@@ -4,28 +4,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const FEATURES = [
   {
-    title: "GTO Solver",
+    title: "Матричная тренировка",
     description:
-      "Real-time game-theory optimal solutions for any preflop or postflop scenario.",
+      "Учи матрицы диапазонов целиком — 13x13网格, визуально и интерактивно.",
+    icon: "M",
+  },
+  {
+    title: "Spaced Repetition",
+    description:
+      "Алгоритм SM-2 (как в Anki) — повторяй в нужный момент, запоминай надолго.",
     icon: "S",
   },
   {
-    title: "Hand Review",
+    title: "Poker Room UI",
     description:
-      "Import hands from any poker site and get AI-powered analysis of every decision.",
-    icon: "R",
+      "Стол как в покер-руме: позиции, стеки, блайнды, история действий.",
+    icon: "P",
   },
   {
-    title: "Targeted Drills",
+    title: "Импорт из солверов",
     description:
-      "Practice specific spots — c-bets, river decisions, 3-bet pots — until they're second nature.",
-    icon: "D",
-  },
-  {
-    title: "Leaderboard",
-    description:
-      "Compete with other players and track your improvement over time.",
-    icon: "L",
+      "Импортируй диапазоны из Flopzilla, PioSolver, Simple Postflop и Anki.",
+    icon: "I",
   },
 ]
 
@@ -33,44 +33,42 @@ const PRICING = [
   {
     name: "Free",
     price: "$0",
-    period: "forever",
-    description: "Get started with basic training.",
-    features: ["10 hands/day", "Basic solver", "Community drills", "Public leaderboard"],
-    cta: "Start Free",
+    period: "навсегда",
+    description: "Начни учить префлоп бесплатно.",
+    features: ["2 колоды", "50 карточек", "Базовая статистика", "SM-2 алгоритм"],
+    cta: "Начать бесплатно",
     href: "/trainer",
     highlighted: false,
   },
   {
     name: "Pro",
-    price: "$19",
-    period: "/month",
-    description: "Full power for serious players.",
+    price: "$9",
+    period: "/мес",
+    description: "Для серьёзных гриндеров.",
     features: [
-      "Unlimited hands",
-      "Full GTO solver",
-      "AI hand review",
-      "Custom drills",
-      "Private leaderboard",
-      "Priority support",
+      "5 колод",
+      "200 карточек",
+      "Полная статистика",
+      "Импорт диапазонов",
+      "Аналитика слабых мест",
     ],
-    cta: "Go Pro",
+    cta: "Upgrade to Pro",
     href: "/trainer",
     highlighted: true,
   },
   {
-    name: "Elite",
-    price: "$49",
-    period: "/month",
-    description: "For pros and coaches.",
+    name: "Coach",
+    price: "$19",
+    period: "/мес",
+    description: "Для тренеров и игроков NL100+.",
     features: [
-      "Everything in Pro",
-      "Advanced solver modes",
-      "Team management",
-      "API access",
-      "White-label option",
-      "Dedicated support",
+      "Безлимит колод",
+      "Безлимит карточек",
+      "CRM для учеников",
+      "API доступ",
+      "Приоритетная поддержка",
     ],
-    cta: "Go Elite",
+    cta: "Go Coach",
     href: "/trainer",
     highlighted: false,
   },
@@ -83,22 +81,17 @@ export default function HomePage() {
       <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/5 via-background to-success/5 px-6 py-24 text-center lg:py-32">
         <div className="mx-auto max-w-3xl space-y-6">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Master poker with{" "}
             <span className="bg-gradient-to-r from-primary to-success bg-clip-text text-transparent">
               MORF
-            </span>
+            </span>{" "}
+            Poker Trainer
           </h1>
           <p className="mx-auto max-w-xl text-lg text-muted-foreground">
-            AI-powered GTO solver, hand review, and training drills. Study smarter,
-            play better.
+            Визуальный матричный тренажёр префлопа. Учи диапазоны как professional — с интервальным повторением и визуальным столом.
           </p>
           <div className="flex items-center justify-center gap-3">
-            <Button size="lg" asChild>
-              <Link href="/trainer">Start Training</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="#features">Learn More</Link>
-            </Button>
+            <Button size="lg" render={<Link href="/trainer" />}>Начать тренировку</Button>
+            <Button size="lg" variant="outline" render={<Link href="#features" />}>Узнать больше</Button>
           </div>
         </div>
       </section>
@@ -107,9 +100,9 @@ export default function HomePage() {
       <section id="features" className="px-6 py-20">
         <div className="mx-auto max-w-5xl space-y-12">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Everything you need to improve</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Всё для заучивания префлопа</h2>
             <p className="mt-2 text-muted-foreground">
-              Tools built by poker players, for poker players.
+              Создано покеристами, для покеристов.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2">
@@ -134,9 +127,9 @@ export default function HomePage() {
       <section className="border-t border-border bg-muted/30 px-6 py-20">
         <div className="mx-auto max-w-5xl space-y-12">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Simple, transparent pricing</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Простое ценообразование</h2>
             <p className="mt-2 text-muted-foreground">
-              Start free. Upgrade when you&apos;re ready.
+              Начни бесплатно. Обновись когда будешь готов.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-3">
@@ -165,9 +158,9 @@ export default function HomePage() {
                   <Button
                     className="w-full"
                     variant={p.highlighted ? "default" : "outline"}
-                    asChild
+                    render={<Link href={p.href} />}
                   >
-                    <Link href={p.href}>{p.cta}</Link>
+                    {p.cta}
                   </Button>
                 </CardContent>
               </Card>
@@ -179,13 +172,11 @@ export default function HomePage() {
       {/* CTA */}
       <section className="px-6 py-20">
         <div className="mx-auto max-w-2xl space-y-6 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">Ready to level up?</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Готов учить префлоп?</h2>
           <p className="text-muted-foreground">
-            Join thousands of players improving their game with MORF.
+            Присоединяйся к игрокам, которые улучшают свою игру с MORF.
           </p>
-          <Button size="lg" asChild>
-            <Link href="/trainer">Get Started — It&apos;s Free</Link>
-          </Button>
+          <Button size="lg" render={<Link href="/trainer" />}>Начать — бесплатно</Button>
         </div>
       </section>
     </div>
