@@ -15,6 +15,7 @@ interface TableState {
   heroStack: number;
   pot?: number;
   random?: number;
+  actions?: Array<{ player: string; action: string; amount: number }>;
 }
 
 interface Card {
@@ -65,63 +66,66 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
     onAnswer(userMatrix, rating);
   };
 
-  // Build action history string
-  const getActionHistory = () => {
-    const parts: string[] = [];
-    const allPositions = ["UTG", "MP", "CO", "BTN", "SB", "BB"];
-    for (const pos of allPositions) {
-      if (pos === card.table_state.heroPosition) {
-        parts.push(`${pos} ${card.table_state.heroStack}`);
-      } else {
-        const v = card.table_state.villainPositions.find((vp) => vp.position === pos);
-        if (v) {
-          parts.push(`${pos} ${v.stack}`);
-        } else {
-          parts.push(`${pos} 100`);
-        }
+  // Calculate pot from actions
+  const calculatePot = () => {
+    let pot = card.table_state.blinds.small + card.table_state.blinds.big;
+    for (const act of card.table_state.actions || []) {
+      if (act.action !== "fold" && act.amount > 0) {
+        pot += act.amount;
       }
     }
-    return parts;
+    return Math.round(pot * 10) / 10;
+  };
+  const pot = calculatePot();
+
+  // Build action history
+  const buildActionHistory = () => {
+    const history: Array<{ position: string; stack: number; action?: string; amount?: number; isHero: boolean }> = [];
+    const allPositions = ["UTG", "MP", "CO", "BTN", "SB", "BB"];
+    const actions = card.table_state.actions || [];
+
+    for (const pos of allPositions) {
+      const isHero = pos === card.table_state.heroPosition;
+      const villain = card.table_state.villainPositions.find((vp) => vp.position === pos);
+      const act = actions.find((a) => a.player === pos);
+
+      history.push({
+        position: pos,
+        stack: isHero ? card.table_state.heroStack : (villain?.stack ?? 100),
+        action: act?.action,
+        amount: act?.amount,
+        isHero,
+      });
+    }
+    return history;
   };
 
-  const actionParts = getActionHistory();
+  const actionHistory = buildActionHistory();
 
   return (
     <div className="flex h-[calc(100vh-5rem)] bg-[var(--background)] overflow-hidden">
       {/* LEFT: Poker Table - 40% */}
       <div className="w-[40%] flex flex-col border-r border-[var(--border)]">
-        {/* Action history bar - above table, centered, large */}
+        {/* Action history bar - above table */}
         <div className="px-4 py-4 border-b border-[var(--border)] bg-[#0a0c10]">
           <div className="flex items-center justify-center gap-3 flex-wrap text-base font-mono">
-            {card.table_state.villainPositions.map((v, i) => (
+            {actionHistory.map((h, i) => (
               <span key={i} className="flex items-center gap-1.5 whitespace-nowrap">
-                <span className="text-base text-[#94a3b8] font-semibold">{v.position}</span>
-                <span className="text-sm text-[#64748b]">{v.stack}</span>
-                <span
-                  className={`
-                    px-3 py-1.5 rounded-md font-bold text-sm
-                    ${
-                      v.action === "fold"
-                        ? "bg-[#1a1d27] text-[#475569] border border-[#333]"
-                        : v.action?.includes("3bet") || v.action?.includes("4bet")
-                        ? "bg-[#e8834A]/20 text-[#e8834A] border border-[#e8834A]/30"
-                        : v.action?.includes("raise") || v.action?.includes("open")
-                        ? "bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30"
-                        : v.action?.includes("call")
-                        ? "bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30"
-                        : "bg-[#1a1d27] text-[#64748b] border border-[#333]"
-                    }
-                  `}
-                >
-                  {v.action === "fold" ? "Fold" : v.action}
-                </span>
+                <span className={`font-semibold ${h.isHero ? "text-[#22c55e]" : "text-[#94a3b8]"}`}>{h.position}</span>
+                <span className="text-[#64748b]">{h.stack}</span>
+                {h.action && (
+                  <span className={`
+                    px-2.5 py-1 rounded-md font-bold text-sm
+                    ${h.action === "fold" ? "bg-[#1a1d27] text-[#475569] border border-[#333]" : h.action.includes("3bet") || h.action.includes("4bet") ? "bg-[#e8834A]/20 text-[#e8834A] border border-[#e8834A]/30" : h.action.includes("raise") || h.action.includes("open") ? "bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30" : h.action.includes("call") ? "bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30" : "bg-[#1a1d27] text-[#64748b] border border-[#333]"}
+                  `}>
+                    {h.action === "fold" ? "Fold" : h.action}
+                    {h.amount !== undefined && h.amount > 0 && h.action !== "fold" && (
+                      <span className="ml-1 opacity-70">{h.amount}</span>
+                    )}
+                  </span>
+                )}
               </span>
             ))}
-            <span className="text-[#333] mx-2 text-lg">|</span>
-            <span className="flex items-center gap-1.5 whitespace-nowrap">
-              <span className="text-[#22c55e] font-bold text-lg">{card.table_state.heroPosition}</span>
-              <span className="text-[#94a3b8] text-base">{card.table_state.heroStack}</span>
-            </span>
           </div>
         </div>
 
@@ -134,7 +138,7 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
             blinds={card.table_state.blinds}
             heroStack={card.table_state.heroStack}
             situation={`${card.table_state.heroPosition} vs. ${card.table_state.villainPositions[0]?.position || '?'}${card.table_state.random ? `, ${card.table_state.random}` : ''}`}
-            pot={card.table_state.pot}
+            pot={pot}
             random={card.table_state.random}
           />
         </div>

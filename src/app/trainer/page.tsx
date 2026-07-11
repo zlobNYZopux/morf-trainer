@@ -44,9 +44,11 @@ const MOCK_CARDS: Card[] = [
     villainStack: 100,
     blinds: { small: 0.5, big: 1 },
     actions: [
+      // Correct order clockwise: MP opens, BTN 3bets, BB folds, SB (hero) decides
       { player: 'MP', action: 'open', amount: 2.5, isMultiplier: false },
-      { player: 'BTN', action: '3bet', amount: 0, isMultiplier: true, multiplier: 3.2 },
-      { player: 'MP', action: 'fold', amount: 0, isMultiplier: false },
+      { player: 'BTN', action: '3bet', amount: 8, isMultiplier: false },
+      { player: 'BB', action: 'fold', amount: 0, isMultiplier: false },
+      // Hero (SB) decides next
     ],
     referenceMatrix: {
       AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
@@ -62,31 +64,6 @@ const MOCK_CARDS: Card[] = [
   },
   {
     id: 'card-002',
-    name: 'BTN vs Open from MP',
-    question: 'Что я опеню с BTN против лимпа?',
-    heroPosition: 'BTN',
-    villainPosition: 'MP',
-    heroStack: 100,
-    villainStack: 100,
-    blinds: { small: 0.5, big: 1 },
-    actions: [
-      { player: 'MP', action: 'limp', amount: 1, isMultiplier: false },
-    ],
-    referenceMatrix: {
-      AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
-      A9s: 100, A8s: 100, A7s: 100, A6s: 100, A5s: 100,
-      A4s: 100, A3s: 100, A2s: 100,
-      AKo: 100, AQo: 100, AJo: 100, ATo: 100,
-      KK: 100, KQs: 100, KJs: 100, KTs: 100,
-      K9s: 100, KQo: 100, KJo: 100, KTo: 100,
-      QQ: 100, JJs: 100, JTs: 100, J9s: 100,
-      QJs: 100, QTs: 100, Q9s: 100,
-      TT: 100, 99: 100, 88: 100, 77: 100,
-      66: 100, 55: 100, 44: 100, 33: 100, 22: 100,
-    },
-  },
-  {
-    id: 'card-003',
     name: 'BB vs Open from CO',
     question: 'Что я колирую на опен из CO?',
     heroPosition: 'BB',
@@ -95,7 +72,11 @@ const MOCK_CARDS: Card[] = [
     villainStack: 100,
     blinds: { small: 0.5, big: 1 },
     actions: [
+      // Correct order: CO opens, BTN folds, SB folds, BB (hero) decides
       { player: 'CO', action: 'open', amount: 2.5, isMultiplier: false },
+      { player: 'BTN', action: 'fold', amount: 0, isMultiplier: false },
+      { player: 'SB', action: 'fold', amount: 0, isMultiplier: false },
+      // Hero (BB) decides next
     ],
     referenceMatrix: {
       AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
@@ -250,6 +231,7 @@ export default function TrainerPage() {
               blinds: currentCard.blinds,
               heroStack: currentCard.heroStack,
               random: currentCard.random,
+              actions: currentCard.actions,
             },
             reference_matrix: currentCard.referenceMatrix,
           }}
