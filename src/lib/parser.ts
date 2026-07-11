@@ -6,34 +6,28 @@ function rankIndex(rank: string): number {
 }
 
 function expandRange(
-  start: string,
-  end: string,
+  firstRank: string,
+  startRank: string,
+  endRank: string,
   suitType: "s" | "o" | "pair"
 ): string[] {
-  const sRank = start.replace(/[so]$/, "");
-  const eRank = end.replace(/[so]$/, "");
-  const si = rankIndex(sRank);
-  const ei = rankIndex(eRank);
-  if (si === -1 || ei === -1) return [];
+  const fi = rankIndex(firstRank);
+  const si = rankIndex(startRank);
+  const ei = rankIndex(endRank);
+  if (fi === -1 || si === -1 || ei === -1) return [];
 
   const hands: string[] = [];
-  // Higher rank index = lower card (e.g. index 0=A, index 12=2)
-  const lo = Math.min(si, ei); // higher card in hand terms
-  const hi = Math.max(si, ei); // lower card in hand terms
+  const lo = Math.min(si, ei);
+  const hi = Math.max(si, ei);
   for (let i = lo; i <= hi; i++) {
     const rank = RANKS[i];
     if (suitType === "pair") {
       hands.push(`${rank}${rank}`);
     } else {
-      hands.push(`${RANKS[lo]}${rank}${suitType}`);
+      hands.push(`${firstRank}${rank}${suitType}`);
     }
   }
   return hands;
-}
-
-function normalizeHand(hand: string): string {
-  // "AA" -> "AA", "AKs" -> "AKs", "AKo" -> "AKo"
-  return hand;
 }
 
 function isValidHand(hand: string): boolean {
@@ -44,10 +38,19 @@ function isValidHand(hand: string): boolean {
     return (
       RANKS.includes(hand[0]) &&
       RANKS.includes(hand[1]) &&
-      SUITS.includes(hand[2])
+      SUITS.includes(hand[2].toLowerCase())
     );
   }
   return false;
+}
+
+/** Normalize hand to canonical format: ranks uppercase, suit lowercase */
+function normalizeHandKey(hand: string): string {
+  if (hand.length === 2) return hand.toUpperCase();
+  if (hand.length === 3) {
+    return hand[0].toUpperCase() + hand[1].toUpperCase() + hand[2].toLowerCase();
+  }
+  return hand.toUpperCase();
 }
 
 /**
@@ -56,19 +59,23 @@ function isValidHand(hand: string): boolean {
  */
 export function parseFlopzilla(rangeText: string): Record<string, number> {
   const matrix: Record<string, number> = {};
-  const parts = rangeText.split(",").map((s) => s.trim().toUpperCase());
+  const parts = rangeText.split(",").map((s) => s.trim());
 
   for (const part of parts) {
     if (!part) continue;
 
-    // Range: "AKs-A5s", "AA-TT", "AKo-AJo", etc.
+    // Range: "AKs-A5s", "AA-TT", "AKo-AJo", "KK-QQ", etc.
+    // Match: 2 chars + optional suit, dash, 2 chars + optional suit
     const rangeMatch = part.match(
-      /^([A-Z2-9])([A-Z2-9])([so])?-([A-Z2-9])([A-Z2-9])([so])?$/
+      /^([A-Z2-9])([A-Z2-9])([so])?-([A-Z2-9])([A-Z2-9])([so])?$/i
     );
     if (rangeMatch) {
-      const [, s1, s2, sSuit, e1, e2, eSuit] = rangeMatch;
-      const startKey = s1 + s2 + (sSuit || "");
-      const endKey = e1 + e2 + (eSuit || "");
+      const s1 = rangeMatch[1].toUpperCase();
+      const s2 = rangeMatch[2].toUpperCase();
+      const sSuit = rangeMatch[3]?.toLowerCase();
+      const e1 = rangeMatch[4].toUpperCase();
+      const e2 = rangeMatch[5].toUpperCase();
+      const eSuit = rangeMatch[6]?.toLowerCase();
 
       let suitType: "s" | "o" | "pair";
       if (sSuit === "s" || eSuit === "s") suitType = "s";
@@ -76,25 +83,37 @@ export function parseFlopzilla(rangeText: string): Record<string, number> {
       else if (s1 === s2 && e1 === e2) suitType = "pair";
       else suitType = "s"; // default for ambiguous ranges
 
-      const hands = expandRange(startKey, endKey, suitType);
-      for (const hand of hands) {
-        if (isValidHand(hand)) {
-          matrix[hand] = 100;
+      if (suitType === "pair") {
+        // Pair range: AA-TT → expand from A to T
+        const hands = expandRange(s1, s1, e1, "pair");
+        for (const hand of hands) {
+          if (isValidHand(hand)) {
+            matrix[hand] = 100;
+          }
+        }
+      } else {
+        // Suited/offsuit range: AKs-A5s → first rank fixed, second rank expands
+        const hands = expandRange(s1, s2, e2, suitType);
+        for (const hand of hands) {
+          if (isValidHand(hand)) {
+            matrix[hand] = 100;
+          }
         }
       }
       continue;
     }
 
     // Single pair: "AA", "KK"
-    if (part.length === 2 && part[0] === part[1] && RANKS.includes(part[0])) {
-      matrix[part] = 100;
+    if (part.length === 2 && part[0].toUpperCase() === part[1].toUpperCase() && RANKS.includes(part[0].toUpperCase())) {
+      matrix[part.toUpperCase()] = 100;
       continue;
     }
 
-    // Suited or offsuit hand: "AKs", "AKo"
-    if (part.length === 3 && SUITS.includes(part[2])) {
-      if (isValidHand(part)) {
-        matrix[part] = 100;
+    // Suited or offsuit hand: "AKs", "AKo" → normalize to "AKs" (ranks upper, suit lower)
+    if (part.length === 3 && SUITS.includes(part[2].toLowerCase())) {
+      const normalized = part[0].toUpperCase() + part[1].toUpperCase() + part[2].toLowerCase();
+      if (isValidHand(normalized)) {
+        matrix[normalized] = 100;
       }
       continue;
     }
@@ -116,21 +135,23 @@ export function parseAnki(rangeText: string): Record<string, number> {
 
     // Try "hand:weight" or "hand,weight" or "hand\tweight"
     const match = line.match(
-      /^([A-Z2-9][so]?)[\s,:\t]+(\d+(?:\.\d+)?)\s*%?\s*$/
+      /^([A-Z2-9]{2}[so]?)[\s,:\t]+(\d+(?:\.\d+)?)\s*%?\s*$/i
     );
     if (match) {
-      const [, hand, weight] = match;
+      const hand = normalizeHandKey(match[1]);
+      const weight = parseFloat(match[2]);
       if (isValidHand(hand)) {
-        matrix[hand] = parseFloat(weight);
+        matrix[hand] = weight;
       }
       continue;
     }
 
     // Try just hand name (default 100%)
-    const handOnly = line.match(/^([A-Z2-9][so]?)\s*$/);
+    const handOnly = line.match(/^([A-Z2-9]{2}[so]?)\s*$/i);
     if (handOnly) {
-      if (isValidHand(handOnly[1])) {
-        matrix[handOnly[1]] = 100;
+      const hand = normalizeHandKey(handOnly[1]);
+      if (isValidHand(hand)) {
+        matrix[hand] = 100;
       }
     }
   }
@@ -154,20 +175,24 @@ export function parsePioSolver(rangeText: string): Record<string, number> {
 
     // Try "hand weight" or "hand:weight"
     const match = part.match(
-      /^([A-Z2-9][so]?)\s*[:\s]\s*(\d+(?:\.\d+)?)\s*%?\s*$/
+      /^([A-Z2-9]{2}[so]?)\s*[:\s]\s*(\d+(?:\.\d+)?)\s*%?\s*$/i
     );
     if (match) {
-      const [, hand, weight] = match;
+      const hand = normalizeHandKey(match[1]);
+      const weight = parseFloat(match[2]);
       if (isValidHand(hand)) {
-        matrix[hand] = parseFloat(weight);
+        matrix[hand] = weight;
       }
       continue;
     }
 
     // Try just hand name (default 100%)
-    const handOnly = part.match(/^([A-Z2-9][so]?)\s*$/);
-    if (handOnly && isValidHand(handOnly[1])) {
-      matrix[handOnly[1]] = 100;
+    const handOnly = part.match(/^([A-Z2-9]{2}[so]?)\s*$/i);
+    if (handOnly) {
+      const hand = normalizeHandKey(handOnly[1]);
+      if (isValidHand(hand)) {
+        matrix[hand] = 100;
+      }
     }
   }
 
@@ -188,8 +213,11 @@ export function parseSimplePostflop(rangeText: string): Record<string, number> {
       for (const item of parsed) {
         const hand = item.hand || item.Hand || item.name;
         const weight = item.weight || item.Weight || item.freq || 100;
-        if (hand && isValidHand(String(hand).toUpperCase())) {
-          matrix[String(hand).toUpperCase()] = Number(weight);
+        if (hand) {
+          const normalized = normalizeHandKey(String(hand));
+          if (isValidHand(normalized)) {
+            matrix[normalized] = Number(weight);
+          }
         }
       }
       return matrix;
@@ -204,19 +232,23 @@ export function parseSimplePostflop(rangeText: string): Record<string, number> {
     if (!line) continue;
 
     const match = line.match(
-      /^([A-Z2-9][so]?)\s*[:\s,]\s*(\d+(?:\.\d+)?)\s*%?\s*$/
+      /^([A-Z2-9]{2}[so]?)\s*[:\s,]\s*(\d+(?:\.\d+)?)\s*%?\s*$/i
     );
     if (match) {
-      const [, hand, weight] = match;
+      const hand = normalizeHandKey(match[1]);
+      const weight = parseFloat(match[2]);
       if (isValidHand(hand)) {
-        matrix[hand] = parseFloat(weight);
+        matrix[hand] = weight;
       }
       continue;
     }
 
-    const handOnly = line.match(/^([A-Z2-9][so]?)\s*$/);
-    if (handOnly && isValidHand(handOnly[1])) {
-      matrix[handOnly[1]] = 100;
+    const handOnly = line.match(/^([A-Z2-9]{2}[so]?)\s*$/i);
+    if (handOnly) {
+      const hand = normalizeHandKey(handOnly[1]);
+      if (isValidHand(hand)) {
+        matrix[hand] = 100;
+      }
     }
   }
 

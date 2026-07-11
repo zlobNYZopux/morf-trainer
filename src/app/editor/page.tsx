@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import DeckEditor from '@/components/editor/DeckEditor';
-import CardEditor from '@/components/editor/CardEditor';
-import ImportDialog from '@/components/editor/ImportDialog';
+import { useState } from "react";
+import Link from "next/link";
+import DeckEditor from "@/components/editor/DeckEditor";
+import CardEditor from "@/components/editor/CardEditor";
+import ImportDialog from "@/components/editor/ImportDialog";
+import { Button } from "@/components/ui/button";
 
 interface Card {
   id?: string;
@@ -25,16 +26,16 @@ interface Deck {
 
 const initialDecks: Deck[] = [
   {
-    id: 'deck-001',
-    name: '3bet Spots',
+    id: "deck-001",
+    name: "3bet Spots",
     cards: [
       {
-        id: 'card-001',
-        name: 'BTN vs 3bet from MP',
-        question: 'Что я колирую на 3бет?',
-        heroPosition: 'BTN',
-        villainPosition: 'MP',
-        action: 'call',
+        id: "card-001",
+        name: "BTN vs 3bet from MP",
+        question: "Что я колирую на 3бет?",
+        heroPosition: "BTN",
+        villainPosition: "MP",
+        action: "call",
         stack: 100,
         referenceMatrix: { AA: 100, KK: 100, QQ: 100 },
       },
@@ -78,7 +79,9 @@ export default function EditorPage() {
         if (cardData.id) {
           return {
             ...deck,
-            cards: deck.cards.map((c) => (c.id === cardData.id ? cardData : c)),
+            cards: deck.cards.map((c) =>
+              c.id === cardData.id ? cardData : c
+            ),
           };
         } else {
           const newCard = { ...cardData, id: `card-${Date.now()}` };
@@ -99,16 +102,18 @@ export default function EditorPage() {
     );
   };
 
-  const handleImport = (importedCards: Array<{ name: string; referenceMatrix: Record<string, number> }>) => {
+  const handleImport = (
+    importedCards: Array<{ name: string; referenceMatrix: Record<string, number> }>
+  ) => {
     if (!selectedDeckId) return;
 
     const newCards: Card[] = importedCards.map((c, i) => ({
       id: `card-imported-${Date.now()}-${i}`,
       name: c.name,
-      question: '',
-      heroPosition: 'BTN',
-      villainPosition: 'MP',
-      action: 'open',
+      question: "",
+      heroPosition: "BTN",
+      villainPosition: "MP",
+      action: "open",
       stack: 100,
       referenceMatrix: c.referenceMatrix,
     }));
@@ -125,28 +130,36 @@ export default function EditorPage() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="max-w-full mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-full mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-              ← Dashboard
+            <Link
+              href="/dashboard"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              &larr; Dashboard
             </Link>
-            <h1 className="text-lg font-bold">Deck Editor</h1>
+            <h1 className="text-lg font-semibold">Deck Editor</h1>
           </div>
           {selectedDeckId && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setIsImportOpen(true)}
-              className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted"
             >
               Import Cards
-            </button>
+            </Button>
           )}
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel: Decks */}
+        {/* Left Panel: Deck List */}
         <DeckEditor
-          decks={decks.map((d) => ({ id: d.id, name: d.name, cardCount: d.cards.length }))}
+          decks={decks.map((d) => ({
+            id: d.id,
+            name: d.name,
+            cardCount: d.cards.length,
+          }))}
           selectedDeckId={selectedDeckId}
           onSelectDeck={(id) => {
             setSelectedDeckId(id);
@@ -172,32 +185,22 @@ export default function EditorPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">{selectedDeck.name}</h2>
-                <button
+                <Button
+                  size="sm"
                   onClick={() =>
                     setEditingCard({
-                      name: '',
-                      question: '',
-                      heroPosition: 'BTN',
-                      villainPosition: 'MP',
-                      action: 'open',
+                      name: "",
+                      question: "",
+                      heroPosition: "BTN",
+                      villainPosition: "MP",
+                      action: "open",
                       stack: 100,
-                      referenceMatrix: {
-                        AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
-                        A9s: 0, A8s: 0, A7s: 0, A6s: 0, A5s: 100,
-                        A4s: 0, A3s: 0, A2s: 0,
-                        AKo: 100, AQo: 100, AJo: 100, ATo: 0,
-                        KK: 100, KQs: 100, KJs: 100, KTs: 0,
-                        KQo: 0, KJo: 0,
-                        QQ: 100, JJs: 100, JTs: 0,
-                        TT: 100, 99: 100, 88: 0, 77: 0,
-                        66: 0, 55: 0, 44: 0, 33: 0, 22: 0,
-                      },
+                      referenceMatrix: {},
                     })
                   }
-                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
                 >
                   + Add Card
-                </button>
+                </Button>
               </div>
 
               {selectedDeck.cards.length === 0 ? (
@@ -211,25 +214,28 @@ export default function EditorPage() {
                       key={card.id}
                       className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
                     >
-                      <div>
-                        <p className="font-medium">{card.name}</p>
+                      <div className="min-w-0">
+                        <p className="font-medium">{card.name || "Untitled Card"}</p>
                         <p className="text-sm text-muted-foreground">
                           {card.heroPosition} vs {card.villainPosition} — {card.action}
+                          {card.question && ` — ${card.question}`}
                         </p>
                       </div>
-                      <div className="flex gap-2">
-                        <button
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => setEditingCard(card)}
-                          className="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-muted"
                         >
                           Edit
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
                           onClick={() => card.id && handleDeleteCard(card.id)}
-                          className="px-3 py-1.5 text-sm rounded-lg text-destructive hover:bg-destructive/10"
                         >
                           Delete
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}
