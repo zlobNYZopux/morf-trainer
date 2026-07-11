@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 
 const RANKS = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
 
@@ -113,10 +113,10 @@ export function HandMatrix({
     <div className="flex flex-col items-center select-none">
       {/* Matrix grid */}
       <div
-        className="grid gap-0"
+        className="grid gap-px"
         style={{
-          gridTemplateColumns: `1.75rem repeat(13, 2.5rem)`,
-          gridTemplateRows: `1.25rem repeat(13, 2.5rem)`,
+          gridTemplateColumns: `2rem repeat(13, 2.75rem)`,
+          gridTemplateRows: `1.5rem repeat(13, 2.75rem)`,
         }}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
@@ -128,7 +128,7 @@ export function HandMatrix({
         {RANKS.map((rank) => (
           <div
             key={`col-${rank}`}
-            className="flex items-center justify-center text-[10px] font-bold text-gray-500"
+            className="flex items-center justify-center text-xs font-bold text-[#64748b]"
           >
             {rank}
           </div>
@@ -136,11 +136,10 @@ export function HandMatrix({
 
         {/* Rows */}
         {RANKS.map((rowRank, rowIdx) => (
-          <>
+          <React.Fragment key={`row-${rowRank}`}>
             {/* Row header */}
             <div
-              key={`row-${rowRank}`}
-              className="flex items-center justify-center text-[10px] font-bold text-gray-500"
+              className="flex items-center justify-center text-xs font-bold text-[#64748b]"
             >
               {rowRank}
             </div>
@@ -165,12 +164,10 @@ export function HandMatrix({
                   onMouseEnter={() => handleMouseEnter(handName)}
                   title={`${handName}: ${weight}%`}
                 >
-                  {weight > 0 && (
-                    <div
-                      className="hand-cell-fill"
-                      style={{ height: `${weight}%` }}
-                    />
-                  )}
+                  <div
+                    className="hand-cell-fill"
+                    style={{ height: `${weight}%` }}
+                  />
                   <span
                     className={`hand-cell-label ${isSuited ? "suited" : ""}`}
                   >
@@ -179,24 +176,24 @@ export function HandMatrix({
                 </div>
               );
             })}
-          </>
+          </React.Fragment>
         ))}
       </div>
 
       {/* Bottom stats bar */}
-      <div className="mt-3 flex items-center gap-4 text-xs text-gray-400 font-mono">
+      <div className="mt-4 flex items-center gap-4 text-xs text-[#64748b] font-mono">
         <span>
-          <span className="text-gray-500">{action} </span>
-          <span className="text-white font-semibold">{raisePercent}%</span>
+          <span className="text-[#94a3b8]">{action} </span>
+          <span className="text-[#e2e8f0] font-semibold">{raisePercent}%</span>
         </span>
         <span>
-          <span className="text-gray-500">Fold </span>
-          <span className="text-white font-semibold">{foldPercent}%</span>
+          <span className="text-[#94a3b8]">Fold </span>
+          <span className="text-[#e2e8f0] font-semibold">{foldPercent}%</span>
         </span>
-        <span className="text-gray-600">|</span>
+        <span className="text-[#334155]">|</span>
         <span>
-          <span className="text-gray-500">combos: </span>
-          <span className="text-white font-semibold">{totalCombos}</span>
+          <span className="text-[#94a3b8]">combos: </span>
+          <span className="text-[#e2e8f0] font-semibold">{totalCombos}</span>
         </span>
       </div>
     </div>

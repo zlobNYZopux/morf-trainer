@@ -252,7 +252,7 @@ export default function TrainerPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="h-[calc(100vh-4rem)]">
         <TrainingCard
           key={currentCard.id}
           card={currentCard}
