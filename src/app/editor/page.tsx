@@ -13,8 +13,16 @@ interface Card {
   question: string;
   heroPosition: string;
   villainPosition: string;
-  action: string;
-  stack: number;
+  heroStack: number;
+  villainStack: number;
+  blinds: { small: number; big: number };
+  actions: Array<{
+    player: string;
+    action: string;
+    amount: number;
+    isMultiplier: boolean;
+    multiplier?: number;
+  }>;
   referenceMatrix: Record<string, number>;
 }
 
@@ -35,8 +43,14 @@ const initialDecks: Deck[] = [
         question: "Что я колирую на 3бет?",
         heroPosition: "BTN",
         villainPosition: "MP",
-        action: "call",
-        stack: 100,
+        heroStack: 100,
+        villainStack: 100,
+        blinds: { small: 0.5, big: 1 },
+        actions: [
+          { player: "MP", action: "open", amount: 2.5, isMultiplier: false },
+          { player: "BTN", action: "3bet", amount: 0, isMultiplier: true, multiplier: 3 },
+          { player: "MP", action: "call", amount: 0, isMultiplier: false },
+        ],
         referenceMatrix: { AA: 100, KK: 100, QQ: 100 },
       },
     ],

@@ -5,6 +5,8 @@ interface PlayerSeat {
   stack: number;
   action?: string;
   folded?: boolean;
+  isHero?: boolean;
+  isActive?: boolean;
 }
 
 interface PokerTableProps {
@@ -14,18 +16,19 @@ interface PokerTableProps {
   blinds: { small: number; big: number };
   heroStack: number;
   heroAction?: string;
+  situation?: string; // e.g. "BB vs. UTG, SRP, 100bb"
   pot?: number;
   random?: number;
 }
 
-// 6-max positions around oval (angles in degrees, 0=right, 90=bottom)
-const SEAT_POSITIONS: Record<string, { angle: number; label: string }> = {
-  UTG: { angle: 210, label: "UTG" },
-  MP: { angle: 150, label: "MP" },
-  CO: { angle: 90, label: "CO" },
-  BTN: { angle: 30, label: "BTN" },
-  SB: { angle: 330, label: "SB" },
-  BB: { angle: 270, label: "BB" },
+// 6-max positions (clockwise from top-left)
+const SEAT_6MAX: Record<string, { x: number; y: number }> = {
+  UTG: { x: 30, y: 75 },
+  MP: { x: 12, y: 50 },
+  CO: { x: 30, y: 25 },
+  BTN: { x: 70, y: 25 },
+  SB: { x: 88, y: 50 },
+  BB: { x: 70, y: 75 },
 };
 
 export function PokerTable({
@@ -35,95 +38,78 @@ export function PokerTable({
   blinds,
   heroStack,
   heroAction,
+  situation,
   pot,
   random,
 }: PokerTableProps) {
-  const getSeatCoords = (position: string) => {
-    const seat = SEAT_POSITIONS[position];
-    if (!seat) return { x: 50, y: 50 };
-    const rad = (seat.angle * Math.PI) / 180;
-    const rx = 44;
-    const ry = 38;
-    return {
-      x: 50 + rx * Math.cos(rad),
-      y: 50 + ry * Math.sin(rad),
-    };
-  };
-
   // Build all 6 seats
-  const allSeats: Array<{
-    position: string;
-    stack: number;
-    isHero: boolean;
-    action?: string;
-    folded?: boolean;
-  }> = [
-    {
-      position: heroPosition,
-      stack: heroStack,
-      isHero: true,
-      action: heroAction,
-    },
-    ...villainPositions.map((v) => ({
-      ...v,
-      isHero: false,
-    })),
-  ];
+  const allPositions = ["UTG", "MP", "CO", "BTN", "SB", "BB"];
+  const villainMap = new Map(villainPositions.map((v) => [v.position, v]));
+
+  const seats = allPositions.map((pos) => {
+    const isHero = pos === heroPosition;
+    const villain = villainMap.get(pos);
+    return {
+      position: pos,
+      stack: isHero ? heroStack : (villain?.stack ?? 100),
+      isHero,
+      isActive: isHero || (villain?.action !== undefined && villain?.action !== "fold"),
+      action: isHero ? heroAction : villain?.action,
+      folded: !isHero && (villain?.folded ?? false),
+      coords: SEAT_6MAX[pos],
+    };
+  });
 
   return (
-    <div className="relative w-full h-full min-h-[380px]">
-      {/* Table felt */}
+    <div className="relative w-full h-full min-h-[380px] select-none">
+      {/* Oval table outline */}
       <div
-        className="absolute rounded-[50%]"
+        className="absolute"
         style={{
-          inset: "24px",
-          background:
-            "radial-gradient(ellipse at center, #1a6b30 0%, #0d4420 50%, #092e16 100%)",
+          left: "10%",
+          right: "10%",
+          top: "10%",
+          bottom: "10%",
+          border: "2px solid #333",
+          borderRadius: "50%",
         }}
       />
 
-      {/* Wood rail */}
-      <div
-        className="absolute rounded-[50%] pointer-events-none"
-        style={{
-          inset: "12px",
-          border: "12px solid #3d2b1a",
-          boxShadow:
-            "inset 0 4px 16px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)",
-        }}
-      />
-
-      {/* Inner felt border */}
-      <div
-        className="absolute rounded-[50%] pointer-events-none"
-        style={{
-          inset: "36px",
-          border: "2px solid rgba(255,255,255,0.08)",
-        }}
-      />
+      {/* Center info */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10">
+        {situation && (
+          <div className="text-xs text-[#64748b] mb-2 font-mono">{situation}</div>
+        )}
+        {pot !== undefined && pot > 0 && (
+          <div className="text-sm text-[#e8834A] font-semibold">{pot} bb</div>
+        )}
+        {/* Card backs placeholder */}
+        <div className="flex justify-center gap-1 mt-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="w-6 h-8 rounded-sm bg-[#1a1d27] border border-[#333] flex items-center justify-center"
+            >
+              <span className="text-[8px] text-[#475569] font-bold">W</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Blinds */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-[#1a1d27] px-3 py-1 rounded-full border border-[#242836] text-xs font-mono text-[#94a3b8]">
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 text-[10px] text-[#475569] font-mono">
         {blinds.small}/{blinds.big}
       </div>
 
-      {/* Pot */}
-      {pot !== undefined && pot > 0 && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-[#1a1d27]/90 px-3 py-1 rounded-full border border-[#e8834A]/30 text-xs font-mono text-[#e8834A]">
-          Pot: {pot}
-        </div>
-      )}
-
       {/* RNG */}
       {random !== undefined && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 bg-[#1a1d27] px-3 py-1 rounded-full border border-[#242836] text-xs font-mono text-[#94a3b8]">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 text-[10px] text-[#475569] font-mono">
           🎲 {random}
         </div>
       )}
 
       {/* Seats */}
-      {allSeats.map((seat) => {
-        const coords = getSeatCoords(seat.position);
+      {seats.map((seat) => {
         const isButton = seat.position === buttonPosition;
 
         return (
@@ -131,39 +117,46 @@ export function PokerTable({
             key={seat.position}
             className="absolute -translate-x-1/2 -translate-y-1/2 z-20"
             style={{
-              left: `${coords.x}%`,
-              top: `${coords.y}%`,
+              left: `${seat.coords.x}%`,
+              top: `${seat.coords.y}%`,
             }}
           >
-            {/* Button dot */}
+            {/* Button indicator */}
             {isButton && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 border-gray-400 shadow-md z-30" />
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white text-[8px] font-bold text-black flex items-center justify-center z-30 shadow-md">
+                D
+              </div>
             )}
 
-            {/* Seat card */}
+            {/* Seat circle */}
             <div
               className={`
-                flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg min-w-[72px]
-                shadow-lg transition-all
+                relative flex flex-col items-center justify-center
+                w-14 h-14 rounded-full
+                transition-all duration-200
                 ${
                   seat.isHero
-                    ? "bg-[#22c55e]/90 text-white border-2 border-[#22c55e]"
-                    : seat.folded
-                    ? "bg-[#1a1d27]/50 text-[#475569] border border-[#242836]/50"
-                    : "bg-[#1a1d27] text-[#e2e8f0] border border-[#242836]"
+                    ? "bg-[#1a1d27] border-2 border-[#22c55e] text-white"
+                    : seat.isActive
+                    ? "bg-[#1a1d27] border-2 border-[#e8834A] text-white"
+                    : "bg-[#1a1d27] border border-[#333] text-[#64748b]"
                 }
               `}
             >
-              <div className="text-[11px] font-bold tracking-wide">
+              <span className="text-[11px] font-bold tracking-wide">
                 {seat.position}
-              </div>
-              <div className="text-[10px] font-mono opacity-70">
-                {seat.stack}bb
-              </div>
-              {seat.action && !seat.folded && (
-                <div
+              </span>
+              <span className="text-[9px] font-mono opacity-60">
+                {seat.stack}
+              </span>
+            </div>
+
+            {/* Action badge */}
+            {seat.action && !seat.folded && seat.action !== "fold" && (
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                <span
                   className={`
-                    text-[9px] px-1.5 py-0.5 rounded font-semibold
+                    text-[8px] px-1.5 py-0.5 rounded-full font-semibold
                     ${
                       seat.action.includes("3bet") || seat.action.includes("4bet")
                         ? "bg-[#e8834A]/20 text-[#e8834A]"
@@ -176,12 +169,9 @@ export function PokerTable({
                   `}
                 >
                   {seat.action}
-                </div>
-              )}
-              {seat.folded && (
-                <div className="text-[9px] text-[#475569] italic">fold</div>
-              )}
-            </div>
+                </span>
+              </div>
+            )}
           </div>
         );
       })}

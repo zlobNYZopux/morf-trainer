@@ -9,7 +9,7 @@ import { ComparisonView } from "./ComparisonView";
 
 interface TableState {
   heroPosition: string;
-  villainPositions: Array<{ position: string; stack: number; action?: string }>;
+  villainPositions: Array<{ position: string; stack: number; action?: string; folded?: boolean }>;
   buttonPosition: string;
   blinds: { small: number; big: number };
   heroStack: number;

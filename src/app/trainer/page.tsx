@@ -4,22 +4,25 @@ import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { TrainingCard } from '@/components/trainer/TrainingCard';
 
-interface TableState {
-  heroPosition: string;
-  villainPositions: Array<{ position: string; stack: number; action?: string }>;
-  buttonPosition: string;
-  blinds: { small: number; big: number };
-  heroStack: number;
-  pot?: number;
-  random?: number;
+interface BetAction {
+  player: string;
+  action: string;
+  amount: number;
+  isMultiplier: boolean;
+  multiplier?: number;
 }
 
 interface Card {
   id: string;
   name: string;
   question: string;
-  table_state: TableState;
-  reference_matrix: Record<string, number>;
+  heroPosition: string;
+  villainPosition: string;
+  heroStack: number;
+  villainStack: number;
+  blinds: { small: number; big: number };
+  actions: BetAction[];
+  referenceMatrix: Record<string, number>;
 }
 
 interface SessionResult {
@@ -28,15 +31,24 @@ interface SessionResult {
   missing: number;
   extra: number;
   accuracy: number;
-  rating: number;
 }
 
-const baseMockCards: Omit<Card, 'table_state'>[] = [
+const MOCK_CARDS: Card[] = [
   {
     id: 'card-001',
-    name: 'BTN vs 3bet from MP',
+    name: 'SB vs 3bet from BTN',
     question: 'Что я колирую на 3бет?',
-    reference_matrix: {
+    heroPosition: 'SB',
+    villainPosition: 'BTN',
+    heroStack: 100,
+    villainStack: 100,
+    blinds: { small: 0.5, big: 1 },
+    actions: [
+      { player: 'MP', action: 'open', amount: 2.5, isMultiplier: false },
+      { player: 'BTN', action: '3bet', amount: 0, isMultiplier: true, multiplier: 3.2 },
+      { player: 'MP', action: 'fold', amount: 0, isMultiplier: false },
+    ],
+    referenceMatrix: {
       AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
       A9s: 80, A8s: 70, A7s: 50, A6s: 50, A5s: 100,
       A4s: 80, A3s: 70, A2s: 50,
@@ -50,9 +62,17 @@ const baseMockCards: Omit<Card, 'table_state'>[] = [
   },
   {
     id: 'card-002',
-    name: 'BTN vs Limp from MP',
+    name: 'BTN vs Open from MP',
     question: 'Что я опеню с BTN против лимпа?',
-    reference_matrix: {
+    heroPosition: 'BTN',
+    villainPosition: 'MP',
+    heroStack: 100,
+    villainStack: 100,
+    blinds: { small: 0.5, big: 1 },
+    actions: [
+      { player: 'MP', action: 'limp', amount: 1, isMultiplier: false },
+    ],
+    referenceMatrix: {
       AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
       A9s: 100, A8s: 100, A7s: 100, A6s: 100, A5s: 100,
       A4s: 100, A3s: 100, A2s: 100,
@@ -65,162 +85,126 @@ const baseMockCards: Omit<Card, 'table_state'>[] = [
       66: 100, 55: 100, 44: 100, 33: 100, 22: 100,
     },
   },
+  {
+    id: 'card-003',
+    name: 'BB vs Open from CO',
+    question: 'Что я колирую на опен из CO?',
+    heroPosition: 'BB',
+    villainPosition: 'CO',
+    heroStack: 100,
+    villainStack: 100,
+    blinds: { small: 0.5, big: 1 },
+    actions: [
+      { player: 'CO', action: 'open', amount: 2.5, isMultiplier: false },
+    ],
+    referenceMatrix: {
+      AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
+      A9s: 100, A8s: 100, A7s: 100, A6s: 100, A5s: 100,
+      A4s: 100, A3s: 100, A2s: 100,
+      AKo: 100, AQo: 100, AJo: 100, ATo: 100,
+      KK: 100, KQs: 100, KJs: 100, KTs: 100,
+      K9s: 80, K8s: 60, KQo: 100, KJo: 100, KTo: 100,
+      QQ: 100, JJs: 100, JTs: 100, J9s: 80,
+      QJs: 100, QTs: 100, Q9s: 80,
+      TT: 100, 99: 100, 88: 100, 77: 100,
+      66: 100, 55: 100, 44: 80, 33: 60, 22: 50,
+    },
+  },
 ];
-
-function buildTableStates(randoms: number[]): TableState[] {
-  return [
-    {
-      heroPosition: 'BTN',
-      villainPositions: [
-        { position: 'MP', stack: 100, action: 'call' },
-      ],
-      buttonPosition: 'BTN',
-      blinds: { small: 0.5, big: 1 },
-      heroStack: 100,
-      random: randoms[0],
-    },
-    {
-      heroPosition: 'BTN',
-      villainPositions: [
-        { position: 'MP', stack: 100, action: 'limp' },
-      ],
-      buttonPosition: 'BTN',
-      blinds: { small: 0.5, big: 1 },
-      heroStack: 100,
-      random: randoms[1],
-    },
-  ];
-}
 
 function generateRandoms(count: number): number[] {
   return Array.from({ length: count }, () => Math.floor(Math.random() * 100) + 1);
 }
 
-function calculateComparisonStats(
-  userMatrix: Record<string, number>,
-  referenceMatrix: Record<string, number>
-): { correct: number; wrong: number; missing: number; extra: number; accuracy: number } {
-  let correct = 0;
-  let wrong = 0;
-  let missing = 0;
-  let extra = 0;
-
-  const allHands = Array.from(new Set([
-    ...Object.keys(referenceMatrix),
-    ...Object.keys(userMatrix),
-  ]));
-
-  for (const hand of allHands) {
-    const refWeight = referenceMatrix[hand] ?? 0;
-    const userWeight = userMatrix[hand] ?? 0;
-
-    if (refWeight === userWeight) {
-      correct++;
-    } else if (refWeight > 0 && userWeight === 0) {
-      missing++;
-    } else if (refWeight === 0 && userWeight > 0) {
-      extra++;
-    } else {
-      wrong++;
-    }
-  }
-
-  const total = correct + wrong + missing + extra;
-  const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
-
-  return { correct, wrong, missing, extra, accuracy };
-}
-
 export default function TrainerPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<SessionResult[]>([]);
-  const [sessionDone, setSessionDone] = useState(false);
-  const [sessionRandoms] = useState(() => generateRandoms(baseMockCards.length));
-  const [startTime] = useState(() => Date.now());
+  const [sessionComplete, setSessionComplete] = useState(false);
 
-  const cards: Card[] = useMemo(() => {
-    const tableStates = buildTableStates(sessionRandoms);
-    return baseMockCards.map((card, i) => ({
+  const randoms = useMemo(() => generateRandoms(MOCK_CARDS.length), []);
+
+  const cards = useMemo(() => {
+    return MOCK_CARDS.map((card, i) => ({
       ...card,
-      table_state: tableStates[i],
+      random: randoms[i],
     }));
-  }, [sessionRandoms]);
+  }, [randoms]);
 
   const currentCard = cards[currentIndex];
 
-  const handleAnswer = useCallback((userMatrix: Record<string, number>, rating: number) => {
-    const stats = calculateComparisonStats(userMatrix, currentCard.reference_matrix);
-    setResults((prev) => [...prev, { ...stats, rating }]);
+  const handleAnswer = useCallback(
+    (userMatrix: Record<string, number>, _rating: number) => {
+      const refMatrix = currentCard.referenceMatrix;
+      let correct = 0;
+      let wrong = 0;
+      let missing = 0;
+      let extra = 0;
 
-    if (currentIndex + 1 >= cards.length) {
-      setSessionDone(true);
-    } else {
-      setCurrentIndex((prev) => prev + 1);
-    }
-  }, [currentIndex, cards.length, currentCard]);
+      const allHands = new Set([...Object.keys(refMatrix), ...Object.keys(userMatrix)]);
+      for (const hand of allHands) {
+        const ref = refMatrix[hand] ?? 0;
+        const user = userMatrix[hand] ?? 0;
+        if (ref === user) correct++;
+        else if (ref > 0 && user === 0) missing++;
+        else if (ref === 0 && user > 0) extra++;
+        else wrong++;
+      }
 
-  const resetSession = useCallback(() => {
-    setCurrentIndex(0);
-    setResults([]);
-    setSessionDone(false);
-  }, []);
+      const accuracy = allHands.size > 0 ? Math.round((correct / allHands.size) * 100) : 0;
+      setResults((prev) => [...prev, { correct, wrong, missing, extra, accuracy }]);
 
-  const elapsed = useMemo(() => {
-    const secs = Math.floor((Date.now() - startTime) / 1000);
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  }, [startTime, sessionDone]);
+      if (currentIndex < cards.length - 1) {
+        setCurrentIndex((prev) => prev + 1);
+      } else {
+        setSessionComplete(true);
+      }
+    },
+    [currentIndex, cards.length, currentCard]
+  );
 
-  if (sessionDone) {
+  if (sessionComplete) {
     const totalCorrect = results.reduce((s, r) => s + r.correct, 0);
-    const totalWrong = results.reduce((s, r) => s + r.wrong, 0);
-    const totalMissing = results.reduce((s, r) => s + r.missing, 0);
-    const totalExtra = results.reduce((s, r) => s + r.extra, 0);
-    const totalHands = totalCorrect + totalWrong + totalMissing + totalExtra;
-    const overallAccuracy = totalHands > 0 ? Math.round((totalCorrect / totalHands) * 100) : 0;
-    const avgRating = results.length > 0
-      ? (results.reduce((s, r) => s + r.rating, 0) / results.length).toFixed(1)
-      : '0';
+    const totalHands = results.reduce((s, r) => s + r.correct + r.wrong + r.missing + r.extra, 0);
+    const avgAccuracy = results.length > 0
+      ? Math.round(results.reduce((s, r) => s + r.accuracy, 0) / results.length)
+      : 0;
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="max-w-md w-full mx-4 rounded-xl border border-border bg-card p-8 text-center space-y-6">
-          <h1 className="text-2xl font-bold">Session Complete!</h1>
+      <div className="flex flex-col items-center justify-center min-h-screen p-6">
+        <div className="max-w-md w-full space-y-6 text-center">
+          <h1 className="text-3xl font-bold">Тренировка завершена!</h1>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="p-4 rounded-lg bg-[#1a1d27] border border-[#242836]">
+              <div className="text-2xl font-bold text-[#22c55e]">{avgAccuracy}%</div>
+              <div className="text-[#94a3b8]">Средняя точность</div>
+            </div>
+            <div className="p-4 rounded-lg bg-[#1a1d27] border border-[#242836]">
+              <div className="text-2xl font-bold text-[#e2e8f0]">{totalCorrect}/{totalHands}</div>
+              <div className="text-[#94a3b8]">Всего рук</div>
+            </div>
+          </div>
           <div className="space-y-2">
-            <p className="text-4xl font-bold text-primary">{overallAccuracy}%</p>
-            <p className="text-muted-foreground">Overall Accuracy</p>
+            {results.map((r, i) => (
+              <div key={i} className="flex justify-between text-sm p-2 rounded bg-[#0f1117]">
+                <span className="text-[#94a3b8]">Карточка {i + 1}</span>
+                <span className="text-[#e2e8f0] font-mono">{r.accuracy}%</span>
+              </div>
+            ))}
           </div>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="rounded-lg bg-muted/50 p-4">
-              <p className="text-2xl font-bold">{results.length}</p>
-              <p className="text-sm text-muted-foreground">Cards Reviewed</p>
-            </div>
-            <div className="rounded-lg bg-muted/50 p-4">
-              <p className="text-2xl font-bold">{elapsed}</p>
-              <p className="text-sm text-muted-foreground">Time</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="rounded-lg bg-muted/50 p-4">
-              <p className="text-2xl font-bold">{totalCorrect}/{totalHands}</p>
-              <p className="text-sm text-muted-foreground">Hands Correct</p>
-            </div>
-            <div className="rounded-lg bg-muted/50 p-4">
-              <p className="text-2xl font-bold">{avgRating}</p>
-              <p className="text-sm text-muted-foreground">Avg Rating</p>
-            </div>
-          </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 justify-center pt-4">
             <button
-              onClick={resetSession}
-              className="flex-1 py-2 px-4 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90"
+              onClick={() => {
+                setCurrentIndex(0);
+                setResults([]);
+                setSessionComplete(false);
+              }}
+              className="px-6 py-2 rounded-lg bg-[#e8834A] text-white font-semibold hover:bg-[#d4733e]"
             >
-              Train Again
+              Ещё раз
             </button>
             <Link
               href="/dashboard"
-              className="flex-1 py-2 px-4 rounded-lg border border-border font-medium hover:bg-muted text-center"
+              className="px-6 py-2 rounded-lg border border-[#242836] text-[#e2e8f0] hover:bg-[#1a1d27]"
             >
               Dashboard
             </Link>
@@ -231,34 +215,47 @@ export default function TrainerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-            ← Back to Dashboard
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[#242836] bg-[#0f1117]">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-sm text-[#94a3b8] hover:text-[#e2e8f0]">
+            ← Назад
           </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Card {currentIndex + 1} of {cards.length}
-            </span>
-            <div className="w-32 h-2 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all"
-                style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
-              />
-            </div>
-          </div>
+          <span className="text-sm text-[#e2e8f0] font-semibold">{currentCard.name}</span>
         </div>
-      </header>
+        <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
+          <span>Карточка {currentIndex + 1}/{cards.length}</span>
+          <span className="font-mono">🎲 {currentCard.random}</span>
+        </div>
+      </div>
 
-      <main className="h-[calc(100vh-4rem)]">
+      {/* Training Card */}
+      <div className="flex-1 min-h-0">
         <TrainingCard
           key={currentCard.id}
-          card={currentCard}
+          card={{
+            ...currentCard,
+            table_state: {
+              heroPosition: currentCard.heroPosition,
+              villainPositions: currentCard.actions
+                .filter((a) => a.player !== currentCard.heroPosition)
+                .map((a) => ({
+                  position: a.player,
+                  stack: currentCard.villainStack,
+                  action: a.action,
+                  folded: a.action === 'fold',
+                })),
+              buttonPosition: 'BTN',
+              blinds: currentCard.blinds,
+              heroStack: currentCard.heroStack,
+              random: currentCard.random,
+            },
+            reference_matrix: currentCard.referenceMatrix,
+          }}
           onAnswer={handleAnswer}
         />
-      </main>
+      </div>
     </div>
   );
 }
