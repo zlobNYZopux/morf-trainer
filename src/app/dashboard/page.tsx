@@ -7,37 +7,32 @@ import DeckCard from '@/components/dashboard/DeckCard';
 const mockDecks = [
   {
     id: 'deck-001',
-    name: '3bet Spots',
+    name: '6-max Cash',
     gameType: 'NLH Cash',
     cardCount: 42,
-    accuracy: 78,
-    masteredCount: 12,
+    accuracy: 82,
+    masteredCount: 18,
   },
   {
     id: 'deck-002',
-    name: 'Preflop Opens',
+    name: '6-max Ante 20',
     gameType: 'NLH Cash',
-    cardCount: 65,
-    accuracy: 85,
-    masteredCount: 28,
+    cardCount: 56,
+    accuracy: 79,
+    masteredCount: 14,
   },
   {
     id: 'deck-003',
-    name: 'MTT ICM',
-    gameType: 'Tournament',
-    cardCount: 30,
-    accuracy: 62,
-    masteredCount: 5,
+    name: '9-max Cash',
+    gameType: 'NLH Cash',
+    cardCount: 38,
+    accuracy: 91,
+    masteredCount: 13,
   },
 ];
 
 export default function DashboardPage() {
   const [decks] = useState(mockDecks);
-
-  const totalReviews = decks.reduce((sum, d) => sum + Math.floor(d.cardCount * (d.accuracy / 100) * 3), 0);
-  const avgAccuracy = Math.round(decks.reduce((sum, d) => sum + d.accuracy, 0) / decks.length);
-  const totalMastered = decks.reduce((sum, d) => sum + d.masteredCount, 0);
-  const totalCards = decks.reduce((sum, d) => sum + d.cardCount, 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,11 +56,11 @@ export default function DashboardPage() {
         <section>
           <h2 className="text-lg font-semibold mb-4">Overview</h2>
           <StatsOverview
-            totalReviews={totalReviews}
-            accuracy={avgAccuracy}
-            currentStreak={7}
-            cardsMastered={totalMastered}
-            totalCards={totalCards}
+            totalReviews={1247}
+            accuracy={87}
+            currentStreak={12}
+            cardsMastered={45}
+            totalCards={100}
           />
         </section>
 

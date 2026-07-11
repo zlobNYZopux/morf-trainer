@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { ThemeSwitcher } from "./theme-switcher"
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: "H" },
+  { href: "/", label: "Dashboard", icon: "D" },
   { href: "/trainer", label: "Trainer", icon: "T" },
   { href: "/solver", label: "Solver", icon: "S" },
   { href: "/review", label: "Review", icon: "R" },

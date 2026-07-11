@@ -18,9 +18,9 @@ export function RangeTextInput({
   const parseRange = (input: string): Record<string, number> => {
     const result: Record<string, number> = {};
     const ranks = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
-    
+
     const parts = input.split(",").map((p) => p.trim()).filter(Boolean);
-    
+
     for (const part of parts) {
       // Match exact hands like "AA", "AKs", "AKo"
       const exactMatch = part.match(/^([2-9TJQKA])([2-9TJQKA])([so])?$/i);
@@ -29,7 +29,7 @@ export function RangeTextInput({
         const r1 = rank1.toUpperCase();
         const r2 = rank2.toUpperCase();
         const s = suit?.toLowerCase() || "";
-        
+
         if (r1 === r2) {
           result[r1 + r1] = 100;
         } else if (s === "s") {
@@ -48,7 +48,7 @@ export function RangeTextInput({
         }
         continue;
       }
-      
+
       // Match ranges like "AKs-A5s"
       const rangeMatch = part.match(/^([2-9TJQKA])([2-9TJQKA])([so])?-([2-9TJQKA])([2-9TJQKA])([so])?$/i);
       if (rangeMatch) {
@@ -56,12 +56,9 @@ export function RangeTextInput({
         const sr1 = startRank1.toUpperCase();
         const sr2 = startRank2.toUpperCase();
         const ss = startSuit?.toLowerCase() || "";
-        const er1 = endRank1.toUpperCase();
         const er2 = endRank2.toUpperCase();
         const es = endSuit?.toLowerCase() || "";
-        
-        // Simple range parsing - just mark the endpoints
-        // For a proper implementation, we'd need to iterate through all hands in the range
+
         if (ss === "s" && es === "s") {
           // Suited range like AKs-A5s
           const startIdx = ranks.indexOf(sr2);
@@ -79,15 +76,15 @@ export function RangeTextInput({
         } else {
           // Mixed range - just mark the endpoints
           result[sr1 + sr2 + (ss || "")] = 100;
-          result[er1 + er2 + (es || "")] = 100;
+          result[startRank1.toUpperCase() + er2 + (es || "")] = 100;
         }
         continue;
       }
-      
+
       // If nothing matched, skip
       continue;
     }
-    
+
     return result;
   };
 
@@ -107,16 +104,16 @@ export function RangeTextInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="AA, AKs-A5s, KK, KQs-K9s..."
-        className="w-full h-20 px-3 py-2 rounded border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)] font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+        className="w-full h-20 px-3 py-2 rounded border border-border bg-secondary text-foreground font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
       />
       <button
         onClick={handleParse}
-        className="px-4 py-2 rounded bg-[var(--accent-primary)] text-white font-medium hover:bg-[var(--accent-primary-hover)] transition-colors"
+        className="px-4 py-2 rounded bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
       >
         Parse Range
       </button>
       {error && (
-        <div className="text-sm text-[var(--color-error,#ef4444)]">{error}</div>
+        <div className="text-sm text-danger">{error}</div>
       )}
     </div>
   );

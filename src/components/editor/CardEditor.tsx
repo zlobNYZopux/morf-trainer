@@ -1,6 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
+import { HandMatrix } from "@/components/trainer/HandMatrix";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface CardData {
   id?: string;
@@ -19,159 +23,183 @@ interface CardEditorProps {
   onCancel: () => void;
 }
 
-const positions = ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO'];
-const actions = ['open', '3bet', '4bet', 'call', 'limp', 'squeeze'];
+const POSITIONS = ["BTN", "SB", "BB", "UTG", "MP", "CO"];
+const ACTIONS = ["open", "3bet", "4bet", "call", "limp", "squeeze", "fold", "check"];
 
-const defaultMatrix: Record<string, number> = {
-  AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
-  A9s: 0, A8s: 0, A7s: 0, A6s: 0, A5s: 100,
-  A4s: 0, A3s: 0, A2s: 0,
-  AKo: 100, AQo: 100, AJo: 100, ATo: 0,
-  KK: 100, KQs: 100, KJs: 100, KTs: 0,
-  KQo: 0, KJo: 0,
-  QQ: 100, JJs: 100, JTs: 0,
-  TT: 100, 99: 100, 88: 0, 77: 0,
-  66: 0, 55: 0, 44: 0, 33: 0, 22: 0,
-};
+const EMPTY_MATRIX: Record<string, number> = {};
 
 export default function CardEditor({ card, onSave, onCancel }: CardEditorProps) {
   const [formData, setFormData] = useState<CardData>({
-    name: card.name || '',
-    question: card.question || '',
-    heroPosition: card.heroPosition || 'BTN',
-    villainPosition: card.villainPosition || 'MP',
-    action: card.action || 'open',
+    name: card.name || "",
+    question: card.question || "",
+    heroPosition: card.heroPosition || "BTN",
+    villainPosition: card.villainPosition || "MP",
+    action: card.action || "open",
     stack: card.stack || 100,
-    referenceMatrix: card.referenceMatrix || { ...defaultMatrix },
+    referenceMatrix: card.referenceMatrix || { ...EMPTY_MATRIX },
   });
+  const [selectedHand, setSelectedHand] = useState<string | null>(null);
 
   const handleMatrixChange = (hand: string, value: number) => {
     setFormData((prev) => ({
       ...prev,
-      referenceMatrix: { ...prev.referenceMatrix, [hand]: value },
+      referenceMatrix: {
+        ...prev.referenceMatrix,
+        [hand]: value,
+      },
     }));
   };
 
-  return (
-    <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-      <h3 className="font-semibold text-lg">{card.id ? 'Edit Card' : 'New Card'}</h3>
+  const handleSave = () => {
+    onSave(formData);
+  };
 
+  return (
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold">
+        {card.id ? "Edit Card" : "New Card"}
+      </h3>
+
+      {/* Form Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Name */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Name</label>
-          <input
-            type="text"
+        <div className="space-y-2">
+          <Label htmlFor="card-name">Name</Label>
+          <Input
+            id="card-name"
             value={formData.name}
-            onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, name: e.target.value }))
+            }
             placeholder="e.g. BTN vs 3bet from MP"
           />
         </div>
 
-        {/* Question */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Question</label>
-          <input
-            type="text"
+        <div className="space-y-2">
+          <Label htmlFor="card-question">Question</Label>
+          <Input
+            id="card-question"
             value={formData.question}
-            onChange={(e) => setFormData((prev) => ({ ...prev, question: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, question: e.target.value }))
+            }
             placeholder="e.g. What do I call vs 3bet?"
           />
         </div>
 
-        {/* Hero Position */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Hero Position</label>
+        <div className="space-y-2">
+          <Label htmlFor="hero-position">Hero Position</Label>
           <select
+            id="hero-position"
             value={formData.heroPosition}
-            onChange={(e) => setFormData((prev) => ({ ...prev, heroPosition: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, heroPosition: e.target.value }))
+            }
+            className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            {positions.map((pos) => (
-              <option key={pos} value={pos}>{pos}</option>
+            {POSITIONS.map((pos) => (
+              <option key={pos} value={pos}>
+                {pos}
+              </option>
             ))}
           </select>
         </div>
 
-        {/* Villain Position */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Villain Position</label>
+        <div className="space-y-2">
+          <Label htmlFor="villain-position">Villain Position</Label>
           <select
+            id="villain-position"
             value={formData.villainPosition}
-            onChange={(e) => setFormData((prev) => ({ ...prev, villainPosition: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                villainPosition: e.target.value,
+              }))
+            }
+            className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            {positions.map((pos) => (
-              <option key={pos} value={pos}>{pos}</option>
+            {POSITIONS.map((pos) => (
+              <option key={pos} value={pos}>
+                {pos}
+              </option>
             ))}
           </select>
         </div>
 
-        {/* Action */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Action</label>
+        <div className="space-y-2">
+          <Label htmlFor="action">Action</Label>
           <select
+            id="action"
             value={formData.action}
-            onChange={(e) => setFormData((prev) => ({ ...prev, action: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, action: e.target.value }))
+            }
+            className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            {actions.map((act) => (
-              <option key={act} value={act}>{act}</option>
+            {ACTIONS.map((act) => (
+              <option key={act} value={act}>
+                {act}
+              </option>
             ))}
           </select>
         </div>
 
-        {/* Stack */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Stack (big blinds)</label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="stack">Stack (big blinds)</Label>
+          <Input
+            id="stack"
             type="number"
             value={formData.stack}
-            onChange={(e) => setFormData((prev) => ({ ...prev, stack: parseInt(e.target.value) || 100 }))}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
-            min="1"
-            max="1000"
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                stack: parseInt(e.target.value) || 100,
+              }))
+            }
+            min={1}
+            max={1000}
           />
         </div>
       </div>
 
       {/* Reference Matrix */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Reference Matrix</label>
-        <div className="grid grid-cols-9 gap-1">
-          {Object.entries(formData.referenceMatrix).map(([hand, value]) => (
-            <div key={hand} className="flex flex-col items-center">
-              <span className="text-[10px] text-muted-foreground">{hand}</span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={value}
-                onChange={(e) => handleMatrixChange(hand, parseInt(e.target.value))}
-                className="w-full h-1"
-              />
-              <span className="text-[10px] font-mono">{value}%</span>
-            </div>
-          ))}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label>Reference Matrix</Label>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-sm bg-primary/20 border border-primary/30" />
+              Pairs
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-sm bg-green-500/20 border border-green-500/30" />
+              Suited
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-sm bg-orange-500/20 border border-orange-500/30" />
+              Offsuit
+            </span>
+            <span className="text-muted-foreground/60">
+              Click to toggle, scroll to adjust
+            </span>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 overflow-x-auto">
+          <HandMatrix
+            matrix={formData.referenceMatrix}
+            selectedHand={selectedHand}
+            onSelectHand={setSelectedHand}
+            mode="editable"
+            onMatrixChange={handleMatrixChange}
+          />
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Action Buttons */}
       <div className="flex gap-3 pt-2">
-        <button
-          onClick={() => onSave(formData)}
-          className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90"
-        >
-          Save Card
-        </button>
-        <button
-          onClick={onCancel}
-          className="px-6 py-2 rounded-lg border border-border font-medium hover:bg-muted"
-        >
+        <Button onClick={handleSave}>Save Card</Button>
+        <Button variant="outline" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

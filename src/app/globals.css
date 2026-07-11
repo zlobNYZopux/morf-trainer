@@ -418,23 +418,31 @@
    MATRIX CELL STYLES
    ============================================================ */
 .matrix-cell {
-  @apply rounded-lg border border-border bg-card p-3 transition-all;
+  @apply rounded border border-border bg-card transition-all;
 }
 
 .matrix-cell:hover {
-  @apply border-ring/50 shadow-md;
+  @apply border-ring/50 shadow-sm;
 }
 
-.matrix-cell-best {
-  @apply border-success/50 bg-success/10;
+.matrix-cell-active {
+  @apply bg-primary border-primary;
 }
 
-.matrix-cell-worst {
-  @apply border-danger/50 bg-danger/10;
+.matrix-compare-correct {
+  @apply border-success bg-success/20;
 }
 
-.matrix-cell-neutral {
-  @apply border-muted bg-muted/50;
+.matrix-compare-wrong {
+  @apply border-danger bg-danger/20;
+}
+
+.matrix-compare-missing {
+  @apply border-warning bg-warning/20;
+}
+
+.matrix-compare-extra {
+  @apply border-primary bg-primary/20;
 }
 
 /* ============================================================

@@ -21,10 +21,11 @@ export function WeightSelector({
             key={weight}
             onClick={() => onSelectWeight(weight)}
             className={`
-              px-2 py-1 rounded text-sm font-mono
-              ${selectedWeight === weight
-                ? "bg-[var(--accent-primary)] text-white"
-                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+              px-2 py-1 rounded text-sm font-mono transition-colors
+              ${
+                selectedWeight === weight
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-muted"
               }
             `}
           >
@@ -32,7 +33,7 @@ export function WeightSelector({
           </button>
         ))}
       </div>
-      
+
       {/* Row 2: 25% increments */}
       <div className="flex flex-wrap gap-1">
         {QUARTER_WEIGHTS.map((weight) => (
@@ -40,10 +41,11 @@ export function WeightSelector({
             key={weight}
             onClick={() => onSelectWeight(weight)}
             className={`
-              px-2 py-1 rounded text-sm font-mono
-              ${selectedWeight === weight
-                ? "bg-[var(--accent-primary)] text-white"
-                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+              px-2 py-1 rounded text-sm font-mono transition-colors
+              ${
+                selectedWeight === weight
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-muted"
               }
             `}
           >

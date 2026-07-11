@@ -49,23 +49,23 @@ export function ComparisonView({
       {/* Stats display */}
       <div className="flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-[var(--color-success,#22c55e)]" />
-          <span className="text-[var(--text-primary)]">Correct: {stats.correct}</span>
+          <div className="w-3 h-3 rounded bg-success" />
+          <span className="text-foreground">Correct: {stats.correct}</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-[var(--color-error,#ef4444)]" />
-          <span className="text-[var(--text-primary)]">Wrong: {stats.wrong}</span>
+          <div className="w-3 h-3 rounded bg-danger" />
+          <span className="text-foreground">Wrong: {stats.wrong}</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-[var(--color-warning,#eab308)]" />
-          <span className="text-[var(--text-primary)]">Missing: {stats.missing}</span>
+          <div className="w-3 h-3 rounded bg-warning" />
+          <span className="text-foreground">Missing: {stats.missing}</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-[var(--color-purple,#a855f7)]" />
-          <span className="text-[var(--text-primary)]">Extra: {stats.extra}</span>
+          <div className="w-3 h-3 rounded bg-primary" />
+          <span className="text-foreground">Extra: {stats.extra}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-bold text-[var(--text-primary)]">Accuracy: {accuracy}%</span>
+          <span className="font-bold text-foreground">Accuracy: {accuracy}%</span>
         </div>
       </div>
 

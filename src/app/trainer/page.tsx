@@ -1,19 +1,20 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { TrainingCard } from '@/components/trainer/TrainingCard';
 
 interface TableState {
-  hero_position: string;
-  hero_stack: number;
-  villain_position: string;
-  villain_stack: number;
-  button_position: string;
+  heroPosition: string;
+  villainPositions: Array<{ position: string; stack: number; action?: string }>;
+  buttonPosition: string;
   blinds: { small: number; big: number };
-  action_history: Array<{ player: string; action: string; amount?: number }>;
+  heroStack: number;
+  pot?: number;
+  random?: number;
 }
 
-interface TrainingCard {
+interface Card {
   id: string;
   name: string;
   question: string;
@@ -21,28 +22,20 @@ interface TrainingCard {
   reference_matrix: Record<string, number>;
 }
 
-interface UserAnswer {
-  [hand: string]: number;
+interface SessionResult {
+  correct: number;
+  wrong: number;
+  missing: number;
+  extra: number;
+  accuracy: number;
+  rating: number;
 }
 
-const mockCards: TrainingCard[] = [
+const baseMockCards: Omit<Card, 'table_state'>[] = [
   {
     id: 'card-001',
     name: 'BTN vs 3bet from MP',
     question: 'Что я колирую на 3бет?',
-    table_state: {
-      hero_position: 'BTN',
-      hero_stack: 100,
-      villain_position: 'MP',
-      villain_stack: 100,
-      button_position: 'BTN',
-      blinds: { small: 0.5, big: 1 },
-      action_history: [
-        { player: 'MP', action: 'open', amount: 3 },
-        { player: 'BTN', action: '3bet', amount: 9 },
-        { player: 'MP', action: 'call' },
-      ],
-    },
     reference_matrix: {
       AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
       A9s: 80, A8s: 70, A7s: 50, A6s: 50, A5s: 100,
@@ -59,15 +52,6 @@ const mockCards: TrainingCard[] = [
     id: 'card-002',
     name: 'BTN vs Limp from MP',
     question: 'Что я опеню с BTN против лимпа?',
-    table_state: {
-      hero_position: 'BTN',
-      hero_stack: 100,
-      villain_position: 'MP',
-      villain_stack: 100,
-      button_position: 'BTN',
-      blinds: { small: 0.5, big: 1 },
-      action_history: [{ player: 'MP', action: 'limp' }],
-    },
     reference_matrix: {
       AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
       A9s: 100, A8s: 100, A7s: 100, A6s: 100, A5s: 100,
@@ -83,62 +67,121 @@ const mockCards: TrainingCard[] = [
   },
 ];
 
-function calculateScore(userAnswer: UserAnswer, reference: Record<string, number>): { correct: number; total: number; accuracy: number } {
-  let correct = 0;
-  let total = 0;
+function buildTableStates(randoms: number[]): TableState[] {
+  return [
+    {
+      heroPosition: 'BTN',
+      villainPositions: [
+        { position: 'MP', stack: 100, action: 'call' },
+      ],
+      buttonPosition: 'BTN',
+      blinds: { small: 0.5, big: 1 },
+      heroStack: 100,
+      random: randoms[0],
+    },
+    {
+      heroPosition: 'BTN',
+      villainPositions: [
+        { position: 'MP', stack: 100, action: 'limp' },
+      ],
+      buttonPosition: 'BTN',
+      blinds: { small: 0.5, big: 1 },
+      heroStack: 100,
+      random: randoms[1],
+    },
+  ];
+}
 
-  for (const [hand, refValue] of Object.entries(reference)) {
-    const userValue = userAnswer[hand] ?? 0;
-    const diff = Math.abs(refValue - userValue);
-    if (diff <= 10) correct++;
-    total++;
+function generateRandoms(count: number): number[] {
+  return Array.from({ length: count }, () => Math.floor(Math.random() * 100) + 1);
+}
+
+function calculateComparisonStats(
+  userMatrix: Record<string, number>,
+  referenceMatrix: Record<string, number>
+): { correct: number; wrong: number; missing: number; extra: number; accuracy: number } {
+  let correct = 0;
+  let wrong = 0;
+  let missing = 0;
+  let extra = 0;
+
+  const allHands = Array.from(new Set([
+    ...Object.keys(referenceMatrix),
+    ...Object.keys(userMatrix),
+  ]));
+
+  for (const hand of allHands) {
+    const refWeight = referenceMatrix[hand] ?? 0;
+    const userWeight = userMatrix[hand] ?? 0;
+
+    if (refWeight === userWeight) {
+      correct++;
+    } else if (refWeight > 0 && userWeight === 0) {
+      missing++;
+    } else if (refWeight === 0 && userWeight > 0) {
+      extra++;
+    } else {
+      wrong++;
+    }
   }
 
-  return { correct, total, accuracy: Math.round((correct / total) * 100) };
+  const total = correct + wrong + missing + extra;
+  const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+  return { correct, wrong, missing, extra, accuracy };
 }
 
 export default function TrainerPage() {
-  const [cards] = useState<TrainingCard[]>(mockCards);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [userAnswer, setUserAnswer] = useState<UserAnswer>({});
-  const [showResult, setShowResult] = useState(false);
+  const [results, setResults] = useState<SessionResult[]>([]);
   const [sessionDone, setSessionDone] = useState(false);
-  const [sessionStats, setSessionStats] = useState<{ correct: number; total: number; accuracy: number }[]>([]);
+  const [sessionRandoms] = useState(() => generateRandoms(baseMockCards.length));
+  const [startTime] = useState(() => Date.now());
+
+  const cards: Card[] = useMemo(() => {
+    const tableStates = buildTableStates(sessionRandoms);
+    return baseMockCards.map((card, i) => ({
+      ...card,
+      table_state: tableStates[i],
+    }));
+  }, [sessionRandoms]);
 
   const currentCard = cards[currentIndex];
 
-  const handleRating = useCallback((hand: string, value: number) => {
-    setUserAnswer((prev) => ({ ...prev, [hand]: value }));
-  }, []);
+  const handleAnswer = useCallback((userMatrix: Record<string, number>, rating: number) => {
+    const stats = calculateComparisonStats(userMatrix, currentCard.reference_matrix);
+    setResults((prev) => [...prev, { ...stats, rating }]);
 
-  const handleSubmit = useCallback(() => {
-    const result = calculateScore(userAnswer, currentCard.reference_matrix);
-    setSessionStats((prev) => [...prev, result]);
-    setShowResult(true);
-  }, [userAnswer, currentCard]);
-
-  const handleNext = useCallback(() => {
     if (currentIndex + 1 >= cards.length) {
       setSessionDone(true);
     } else {
       setCurrentIndex((prev) => prev + 1);
-      setUserAnswer({});
-      setShowResult(false);
     }
-  }, [currentIndex, cards.length]);
+  }, [currentIndex, cards.length, currentCard]);
 
   const resetSession = useCallback(() => {
     setCurrentIndex(0);
-    setUserAnswer({});
-    setShowResult(false);
+    setResults([]);
     setSessionDone(false);
-    setSessionStats([]);
   }, []);
 
+  const elapsed = useMemo(() => {
+    const secs = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }, [startTime, sessionDone]);
+
   if (sessionDone) {
-    const totalCorrect = sessionStats.reduce((s, r) => s + r.correct, 0);
-    const totalHands = sessionStats.reduce((s, r) => s + r.total, 0);
+    const totalCorrect = results.reduce((s, r) => s + r.correct, 0);
+    const totalWrong = results.reduce((s, r) => s + r.wrong, 0);
+    const totalMissing = results.reduce((s, r) => s + r.missing, 0);
+    const totalExtra = results.reduce((s, r) => s + r.extra, 0);
+    const totalHands = totalCorrect + totalWrong + totalMissing + totalExtra;
     const overallAccuracy = totalHands > 0 ? Math.round((totalCorrect / totalHands) * 100) : 0;
+    const avgRating = results.length > 0
+      ? (results.reduce((s, r) => s + r.rating, 0) / results.length).toFixed(1)
+      : '0';
 
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -150,12 +193,22 @@ export default function TrainerPage() {
           </div>
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="rounded-lg bg-muted/50 p-4">
-              <p className="text-2xl font-bold">{sessionStats.length}</p>
+              <p className="text-2xl font-bold">{results.length}</p>
               <p className="text-sm text-muted-foreground">Cards Reviewed</p>
             </div>
             <div className="rounded-lg bg-muted/50 p-4">
+              <p className="text-2xl font-bold">{elapsed}</p>
+              <p className="text-sm text-muted-foreground">Time</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="rounded-lg bg-muted/50 p-4">
               <p className="text-2xl font-bold">{totalCorrect}/{totalHands}</p>
               <p className="text-sm text-muted-foreground">Hands Correct</p>
+            </div>
+            <div className="rounded-lg bg-muted/50 p-4">
+              <p className="text-2xl font-bold">{avgRating}</p>
+              <p className="text-sm text-muted-foreground">Avg Rating</p>
             </div>
           </div>
           <div className="flex gap-3">
@@ -200,112 +253,11 @@ export default function TrainerPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Card Info */}
-        <div className="mb-6">
-          <h1 className="text-xl font-bold">{currentCard.name}</h1>
-          <p className="text-muted-foreground mt-1">{currentCard.question}</p>
-        </div>
-
-        {/* Table State */}
-        <div className="rounded-xl border border-border bg-card p-4 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Hero:</span>{' '}
-              <span className="font-medium">{currentCard.table_state.hero_position}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Villain:</span>{' '}
-              <span className="font-medium">{currentCard.table_state.villain_position}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Stacks:</span>{' '}
-              <span className="font-medium">{currentCard.table_state.hero_stack}bb</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Blinds:</span>{' '}
-              <span className="font-medium">
-                {currentCard.table_state.blinds.small}/{currentCard.table_state.blinds.big}
-              </span>
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-border">
-            <span className="text-muted-foreground text-sm">Action: </span>
-            {currentCard.table_state.action_history.map((a, i) => (
-              <span key={i} className="text-sm">
-                {a.player} {a.action}{a.amount ? ` ${a.amount}` : ''}
-                {i < currentCard.table_state.action_history.length - 1 ? ' → ' : ''}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Hand Matrix */}
-        <div className="rounded-xl border border-border bg-card p-4 mb-6">
-          <p className="text-sm text-muted-foreground mb-3">Rate each hand (0-100%):</p>
-          <div className="grid grid-cols-13 gap-1">
-            {Object.entries(currentCard.reference_matrix).map(([hand]) => (
-              <div key={hand} className="flex flex-col items-center">
-                <span className="text-[10px] text-muted-foreground mb-1">{hand}</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={userAnswer[hand] ?? 0}
-                  onChange={(e) => handleRating(hand, parseInt(e.target.value))}
-                  className="w-full h-2"
-                />
-                <span className="text-xs font-mono mt-1">{userAnswer[hand] ?? 0}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Result (when shown) */}
-        {showResult && (
-          <div className="rounded-xl border border-border bg-card p-6 mb-6">
-            <h2 className="font-semibold mb-3">Result</h2>
-            <div className="space-y-2">
-              {Object.entries(currentCard.reference_matrix).slice(0, 10).map(([hand, refVal]) => {
-                const userVal = userAnswer[hand] ?? 0;
-                const diff = Math.abs(refVal - userVal);
-                const isCorrect = diff <= 10;
-                return (
-                  <div key={hand} className="flex items-center gap-3 text-sm">
-                    <span className="font-mono w-10">{hand}</span>
-                    <span className={`w-6 text-center ${isCorrect ? 'text-green-500' : 'text-red-500'}`}>
-                      {isCorrect ? '✓' : '✗'}
-                    </span>
-                    <span className="text-muted-foreground">
-                      Your: {userVal}% | Ref: {refVal}%
-                    </span>
-                  </div>
-                );
-              })}
-              {Object.keys(currentCard.reference_matrix).length > 10 && (
-                <p className="text-xs text-muted-foreground">... and {Object.keys(currentCard.reference_matrix).length - 10} more hands</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-3">
-          {!showResult ? (
-            <button
-              onClick={handleSubmit}
-              className="flex-1 py-3 px-6 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90"
-            >
-              Check Answer
-            </button>
-          ) : (
-            <button
-              onClick={handleNext}
-              className="flex-1 py-3 px-6 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90"
-            >
-              {currentIndex + 1 >= cards.length ? 'See Results' : 'Next Card →'}
-            </button>
-          )}
-        </div>
+        <TrainingCard
+          key={currentCard.id}
+          card={currentCard}
+          onAnswer={handleAnswer}
+        />
       </main>
     </div>
   );
