@@ -118,17 +118,17 @@ export function PokerTable({
 
           return (
             <div key={seat.position} className="absolute -translate-x-1/2 -translate-y-1/2 z-20" style={{ left: `${seat.coords.x}%`, top: `${seat.coords.y}%` }}>
-              {/* Button indicator - closer to table center */}
+              {/* Button indicator - next to seat label, not overlapping */}
               {isButton && (
                 <div className="absolute z-30 rounded-full flex items-center justify-center" style={{
-                  width: "22px", height: "22px",
+                  width: "20px", height: "20px",
                   background: "linear-gradient(135deg, #fff 0%, #ddd 100%)",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-                  bottom: "-12px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+                  top: "50%",
+                  right: "-10px",
+                  transform: "translateY(-50%)",
                 }}>
-                  <span className="text-[9px] font-bold text-[#333]">D</span>
+                  <span className="text-[8px] font-bold text-[#333]">D</span>
                 </div>
               )}
 
