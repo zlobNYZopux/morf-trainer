@@ -101,6 +101,7 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
   };
 
   const actionHistory = buildActionHistory();
+  const showHeroAsQuestion = !showAnswer;
 
   return (
     <div className="flex h-[calc(100vh-5rem)] bg-[var(--background)] overflow-hidden">
@@ -109,23 +110,36 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
         {/* Action history bar - above table */}
         <div className="px-4 py-4 border-b border-[var(--border)] bg-[#0a0c10]">
           <div className="flex items-center justify-center gap-3 flex-wrap text-base font-mono">
-            {actionHistory.map((h, i) => (
-              <span key={i} className="flex items-center gap-1.5 whitespace-nowrap">
-                <span className={`font-semibold ${h.isHero ? "text-[#22c55e]" : "text-[#94a3b8]"}`}>{h.position}</span>
-                <span className="text-[#64748b]">{h.stack}</span>
-                {h.action && (
+            {actionHistory.map((h, i) => {
+              const isRaiser = h.action && (h.action.includes("open") || h.action.includes("raise") || h.action.includes("3bet") || h.action.includes("4bet"));
+              const isHeroTurn = h.isHero && showHeroAsQuestion;
+              return (
+                <span key={i} className="flex items-center gap-1.5 whitespace-nowrap">
                   <span className={`
-                    px-2.5 py-1 rounded-md font-bold text-sm
-                    ${h.action === "fold" ? "bg-[#1a1d27] text-[#475569] border border-[#333]" : h.action.includes("3bet") || h.action.includes("4bet") ? "bg-[#e8834A]/20 text-[#e8834A] border border-[#e8834A]/30" : h.action.includes("raise") || h.action.includes("open") ? "bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30" : h.action.includes("call") ? "bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30" : "bg-[#1a1d27] text-[#64748b] border border-[#333]"}
-                  `}>
-                    {h.action === "fold" ? "Fold" : h.action}
-                    {h.amount !== undefined && h.amount > 0 && h.action !== "fold" && (
-                      <span className="ml-1 opacity-70">{h.amount}</span>
-                    )}
-                  </span>
-                )}
-              </span>
-            ))}
+                    px-2 py-1 rounded-md font-semibold
+                    ${isRaiser ? "bg-[#e8834A]/20 text-[#e8834A]" : isHeroTurn ? "bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30" : h.isHero ? "text-[#22c55e]" : "text-[#94a3b8]"}
+                  `}>{h.position}</span>
+                  <span className={`${isRaiser ? "text-[#e8834A]" : "text-[#64748b]"}`}>{h.stack}</span>
+                  {h.action && (
+                    <span className={`
+                      px-2.5 py-1 rounded-md font-bold text-sm
+                      ${h.action === "fold" ? "bg-[#1a1d27] text-[#475569] border border-[#333]"
+                        : isRaiser ? "bg-[#e8834A] text-white"
+                        : h.action.includes("call") ? "bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30"
+                        : "bg-[#1a1d27] text-[#64748b] border border-[#333]"}
+                    `}>
+                      {h.action === "fold" ? "Fold" : h.action}
+                      {h.amount !== undefined && h.amount > 0 && h.action !== "fold" && (
+                        <span className="ml-1 opacity-80">{h.amount}</span>
+                      )}
+                    </span>
+                  )}
+                  {isHeroTurn && !h.action && (
+                    <span className="px-2.5 py-1 rounded-md font-bold text-sm bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30">???</span>
+                  )}
+                </span>
+              );
+            })}
           </div>
         </div>
 
@@ -137,9 +151,10 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
             buttonPosition={card.table_state.buttonPosition}
             blinds={card.table_state.blinds}
             heroStack={card.table_state.heroStack}
-            situation={`${card.table_state.heroPosition} vs. ${card.table_state.villainPositions[0]?.position || '?'}${card.table_state.random ? `, ${card.table_state.random}` : ''}`}
+            situation={`${card.table_state.heroPosition} vs. ${card.table_state.villainPositions.find(v => v.action !== "fold")?.position || '?'}${card.table_state.random ? `, ${card.table_state.random}` : ''}`}
             pot={pot}
             random={card.table_state.random}
+            showHeroAsQuestion={true}
           />
         </div>
       </div>

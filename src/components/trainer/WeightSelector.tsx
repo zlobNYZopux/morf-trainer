@@ -45,30 +45,32 @@ export function WeightSelector({
   };
 
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex flex-col items-center gap-2 h-full py-2">
       {/* Quick buttons */}
-      {QUICK_WEIGHTS.map((weight) => (
-        <button
-          key={weight}
-          onClick={() => onSelectWeight(weight)}
-          className={`
-            w-full h-9 rounded-md font-semibold text-sm transition-all
-            ${
-              selectedWeight === weight
-                ? "bg-[#E8834A] text-white shadow-md"
-                : "bg-[#2a2a2a] text-[#94a3b8] hover:bg-[#333] hover:text-[#e2e8f0]"
-            }
-          `}
-        >
-          {weight}
-        </button>
-      ))}
+      <div className="flex flex-col gap-1.5">
+        {QUICK_WEIGHTS.map((weight) => (
+          <button
+            key={weight}
+            onClick={() => onSelectWeight(weight)}
+            className={`
+              w-14 h-8 rounded-md font-semibold text-xs transition-all
+              ${
+                selectedWeight === weight
+                  ? "bg-[#E8834A] text-white shadow-md"
+                  : "bg-[#2a2a2a] text-[#94a3b8] hover:bg-[#333] hover:text-[#e2e8f0]"
+              }
+            `}
+          >
+            {weight}
+          </button>
+        ))}
+      </div>
 
       {/* Divider */}
-      <div className="border-t border-[#333] my-1" />
+      <div className="w-full border-t border-[#333]" />
 
-      {/* Slider */}
-      <div className="flex flex-col gap-1">
+      {/* Vertical slider */}
+      <div className="flex-1 flex items-center justify-center min-h-[160px]">
         <input
           type="range"
           min={0}
@@ -76,20 +78,22 @@ export function WeightSelector({
           step={1}
           value={selectedWeight}
           onChange={handleSliderChange}
-          className="w-full h-2 rounded-full appearance-none cursor-pointer"
+          className="slider-vertical"
           style={{
-            background: `linear-gradient(to right, #E8834A ${selectedWeight}%, #2a2a2a ${selectedWeight}%)`,
+            writingMode: "vertical-lr" as const,
+            direction: "rtl",
+            width: "8px",
+            height: "160px",
+            appearance: "none" as const,
+            background: `linear-gradient(to top, #E8834A ${selectedWeight}%, #2a2a2a ${selectedWeight}%)`,
+            borderRadius: "4px",
+            cursor: "pointer",
           }}
         />
-        <div className="flex justify-between text-[10px] text-[#64748b]">
-          <span>0</span>
-          <span>50</span>
-          <span>100</span>
-        </div>
       </div>
 
       {/* Manual input */}
-      <div className="flex items-center gap-1">
+      <div className="flex flex-col items-center gap-0.5">
         <input
           type="text"
           value={inputValue}
@@ -99,7 +103,7 @@ export function WeightSelector({
           className="w-14 h-8 rounded bg-[#1a1d27] border border-[#333] text-center text-sm text-[#e2e8f0] font-mono outline-none focus:border-[#E8834A]"
           maxLength={3}
         />
-        <span className="text-xs text-[#64748b]">%</span>
+        <span className="text-[10px] text-[#64748b]">%</span>
       </div>
     </div>
   );
