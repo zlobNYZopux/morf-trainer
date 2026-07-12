@@ -171,11 +171,22 @@ export function PokerTable({
                 </div>
               )}
 
-              {/* Bet chip display */}
+              {/* Bet chip - on felt, next to player */}
               {seat.bet !== undefined && seat.bet > 0 && !seat.folded && (
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-[#e8834A] border border-[#c46a2e] shadow-sm" />
-                  <span className="text-[10px] font-bold text-[#e8834A]">{seat.bet}</span>
+                <div
+                  className="absolute z-20 flex items-center gap-1.5 whitespace-nowrap"
+                  style={seat.coords.y < 50
+                    ? { top: "100%", marginTop: "8px", left: "50%", transform: "translateX(-50%)" }
+                    : { bottom: "100%", marginBottom: "8px", left: "50%", transform: "translateX(-50%)" }
+                  }
+                >
+                  {/* Chip */}
+                  <div className="relative flex items-center justify-center" style={{ width: "24px", height: "24px" }}>
+                    <div className="absolute inset-0 rounded-full bg-[#e8834A] border-2 border-[#c46a2e] shadow-md" />
+                    <div className="absolute inset-[3px] rounded-full bg-[#d4733e] border border-[#e8834A]" />
+                  </div>
+                  {/* Amount */}
+                  <span className="text-xs font-bold text-[#e8834A]">{seat.bet}</span>
                 </div>
               )}
 

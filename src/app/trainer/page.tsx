@@ -228,6 +228,7 @@ export default function TrainerPage() {
                     position: pos,
                     stack: currentCard.villainStack,
                     action: act?.action,
+                    bet: act?.action !== 'fold' ? act?.amount : undefined,
                     folded: act ? act.action === 'fold' : false,
                   };
                 }),
