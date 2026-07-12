@@ -107,19 +107,11 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
     <div className="flex h-[calc(100vh-5rem)] bg-[var(--background)] overflow-hidden">
       {/* LEFT: Poker Table - 40% */}
       <div className="w-[40%] flex flex-col border-r border-[var(--border)]">
-        {/* Action history bar + RNG - above table */}
+        {/* Action history bar - above table */}
         <div className="px-4 py-4 border-b border-[var(--border)] bg-[#0a0c10]">
-          <div className="flex items-center gap-4">
-            {/* RNG - left side */}
-            {card.table_state.random !== undefined && (
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-3xl">🎲</span>
-                <span className="text-4xl font-black text-[#e8834A] font-mono drop-shadow-lg">{card.table_state.random}</span>
-              </div>
-            )}
-
+          <div className="flex items-center justify-center gap-3 flex-wrap text-base font-mono">
             {/* Action history */}
-            <div className="flex items-center justify-center gap-3 flex-wrap text-base font-mono flex-1">
+            <div className="flex items-center justify-center gap-3 flex-wrap text-base font-mono">
             {actionHistory.map((h, i) => {
               const isRaiser = h.action && (h.action.includes("open") || h.action.includes("raise") || h.action.includes("3bet") || h.action.includes("4bet"));
               const isHeroTurn = h.isHero && showHeroAsQuestion;

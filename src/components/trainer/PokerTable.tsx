@@ -92,7 +92,7 @@ export function PokerTable({
         {/* Inner edge */}
         <div className="absolute rounded-full pointer-events-none" style={{ inset: "32px", border: "1px solid rgba(255,255,255,0.06)" }} />
 
-        {/* Center: pot + card backs */}
+        {/* Center: pot + card backs + RNG */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-2">
           {/* Pot */}
           {pot !== undefined && pot > 0 && (
@@ -110,6 +110,14 @@ export function PokerTable({
             }} />
           ))}
           </div>
+
+          {/* RNG below cards */}
+          {random !== undefined && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xl">🎲</span>
+              <span className="text-2xl font-black text-[#e8834A] font-mono drop-shadow-lg">{random}</span>
+            </div>
+          )}
         </div>
 
         {/* Seats */}
@@ -118,15 +126,15 @@ export function PokerTable({
 
           return (
             <div key={seat.position} className="absolute -translate-x-1/2 -translate-y-1/2 z-20" style={{ left: `${seat.coords.x}%`, top: `${seat.coords.y}%` }}>
-              {/* Button indicator - next to seat label, not overlapping */}
+              {/* Button indicator - on felt, near position, toward center */}
               {isButton && (
                 <div className="absolute z-30 rounded-full flex items-center justify-center" style={{
                   width: "20px", height: "20px",
                   background: "linear-gradient(135deg, #fff 0%, #ddd 100%)",
                   boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
-                  top: "50%",
-                  right: "-10px",
-                  transform: "translateY(-50%)",
+                  // Position toward center of table
+                  top: seat.coords.y < 50 ? "60px" : "-30px",
+                  left: seat.coords.x < 50 ? "50px" : "-30px",
                 }}>
                   <span className="text-[8px] font-bold text-[#333]">D</span>
                 </div>
