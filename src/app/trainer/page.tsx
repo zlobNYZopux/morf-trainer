@@ -44,11 +44,13 @@ const MOCK_CARDS: Card[] = [
     villainStack: 100,
     blinds: { small: 0.5, big: 1 },
     actions: [
-      // Correct order clockwise: MP opens, BTN 3bets, BB folds, SB (hero) decides
+      // Poker order: UTG folds, MP opens 2.5, CO folds, BTN 3bets 8, SB (hero) decides, BB still in
+      { player: 'UTG', action: 'fold', amount: 0, isMultiplier: false },
       { player: 'MP', action: 'open', amount: 2.5, isMultiplier: false },
+      { player: 'CO', action: 'fold', amount: 0, isMultiplier: false },
       { player: 'BTN', action: '3bet', amount: 8, isMultiplier: false },
-      { player: 'BB', action: 'fold', amount: 0, isMultiplier: false },
-      // Hero (SB) decides next
+      // Hero (SB) decides now
+      // BB is still in the hand (will act after hero)
     ],
     referenceMatrix: {
       AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
@@ -72,11 +74,11 @@ const MOCK_CARDS: Card[] = [
     villainStack: 100,
     blinds: { small: 0.5, big: 1 },
     actions: [
-      // Correct order: CO opens, BTN folds, SB folds, BB (hero) decides
+      // Poker order: CO opens, BTN folds, SB folds, BB (hero) decides
       { player: 'CO', action: 'open', amount: 2.5, isMultiplier: false },
       { player: 'BTN', action: 'fold', amount: 0, isMultiplier: false },
       { player: 'SB', action: 'fold', amount: 0, isMultiplier: false },
-      // Hero (BB) decides next
+      // Hero (BB) decides now
     ],
     referenceMatrix: {
       AA: 100, AKs: 100, AQs: 100, AJs: 100, ATs: 100,
@@ -207,7 +209,6 @@ export default function TrainerPage() {
         </div>
         <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
           <span>Карточка {currentIndex + 1}/{cards.length}</span>
-          <span className="font-mono">🎲 {currentCard.random}</span>
         </div>
       </div>
 
@@ -219,14 +220,17 @@ export default function TrainerPage() {
             ...currentCard,
             table_state: {
               heroPosition: currentCard.heroPosition,
-              villainPositions: currentCard.actions
-                .filter((a) => a.player !== currentCard.heroPosition)
-                .map((a) => ({
-                  position: a.player,
-                  stack: currentCard.villainStack,
-                  action: a.action,
-                  folded: a.action === 'fold',
-                })),
+              villainPositions: (["UTG", "MP", "CO", "BTN", "SB", "BB"] as string[])
+                .filter((p) => p !== currentCard.heroPosition)
+                .map((pos) => {
+                  const act = currentCard.actions.find((a) => a.player === pos);
+                  return {
+                    position: pos,
+                    stack: currentCard.villainStack,
+                    action: act?.action,
+                    folded: act ? act.action === 'fold' : true,
+                  };
+                }),
               buttonPosition: 'BTN',
               blinds: currentCard.blinds,
               heroStack: currentCard.heroStack,

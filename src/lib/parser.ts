@@ -26,7 +26,7 @@ function normalizeHand(hand: string): string {
 }
 
 /**
- * Expand a single range like "AKs-A5s", "AA-TT", "K8s-K2s"
+ * Expand a single range like "AKs-A5s", "AA-TT", "K8s-K2s", "Q7s-Q4s"
  */
 function expandSingleRange(range: string): string[] {
   const hands: string[] = [];
@@ -44,7 +44,7 @@ function expandSingleRange(range: string): string[] {
     return hands;
   }
 
-  // Suited/offsuit range: "AKs-A5s", "K8s-K2s", "ATo-AJo"
+  // Suited/offsuit range: "AKs-A5s", "K8s-K2s", "ATo-AJo", "Q7s-Q4s"
   const suitedMatch = range.match(/^([A2-9TJQKA])([A2-9TJQKA])([so])-([A2-9TJQKA])([A2-9TJQKA])([so])$/i);
   if (suitedMatch) {
     const firstRank = suitedMatch[1].toUpperCase();
@@ -63,60 +63,65 @@ function expandSingleRange(range: string): string[] {
 }
 
 /**
+ * Parse a single hand or range and add to matrix with given weight.
+ * Handles: "AA", "AKs", "AKo", "AKs-A5s", "AA-TT", "K8s-K2s"
+ */
+function parseSingleItem(item: string, weight: number, matrix: Record<string, number>): void {
+  if (!item) return;
+
+  // Try as range first (contains dash)
+  if (item.includes("-")) {
+    const rangeHands = expandSingleRange(item);
+    for (const hand of rangeHands) {
+      if (isValidHand(hand)) {
+        matrix[normalizeHand(hand)] = weight;
+      }
+    }
+    return;
+  }
+
+  // Single hand: AA, AKs, AKo, K9s, etc.
+  const normalized = normalizeHand(item);
+  if (isValidHand(normalized)) {
+    matrix[normalized] = weight;
+  }
+}
+
+/**
  * Parse Flopzilla weighted range format.
- * Supports: [99]K9s, [97]A9s-A2s, [93]ATs,KQs-KJs,ATo,KQo
- * Plain hands without [XX] = 100%
+ * Format: [99]K9s,QTs,T9s[/99],[97]A9s-A2s,KTs,QJs[/97],88-44,K8s-K2s
+ * - [XX] starts a weighted group, [/XX] ends it
+ * - Plain items without [XX] = 100% weight
+ * - Multiple comma-separated items within a group share the same weight
  */
 export function parseFlopzilla(rangeText: string): Record<string, number> {
   const matrix: Record<string, number> = {};
 
   // Remove line breaks, normalize spaces
-  const text = rangeText.replace(/\n/g, ",").replace(/\s+/g, "");
+  let text = rangeText.replace(/\n/g, ",").replace(/\s+/g, "");
+
+  // Remove closing tags like [/99], [/97], etc.
+  text = text.replace(/\[\/\d+\]/g, "");
 
   // Split by commas
   const parts = text.split(",").filter(Boolean);
+
+  let currentWeight = 100;
 
   for (const part of parts) {
     if (!part) continue;
 
     // Check for weight prefix: [99], [97], [10], etc.
     const weightMatch = part.match(/^\[(\d{1,3})\](.+)$/);
-    let weight = 100;
-    let content = part;
-
     if (weightMatch) {
-      weight = parseInt(weightMatch[1], 10);
-      content = weightMatch[2];
-    }
-
-    // Try to parse content as a range or single hand
-    // Single hand: AA, AKs, AKo, K9s, etc.
-    if (content.length === 2) {
-      const hand = normalizeHand(content);
-      if (isValidHand(hand)) {
-        matrix[hand] = weight;
-        continue;
-      }
-    }
-
-    if (content.length === 3) {
-      const hand = normalizeHand(content);
-      if (isValidHand(hand)) {
-        matrix[hand] = weight;
-        continue;
-      }
-    }
-
-    // Range: AKs-A5s, AA-TT, K8s-K2s, etc.
-    const rangeHands = expandSingleRange(content);
-    if (rangeHands.length > 0) {
-      for (const hand of rangeHands) {
-        if (isValidHand(hand)) {
-          matrix[normalizeHand(hand)] = weight;
-        }
-      }
+      currentWeight = parseInt(weightMatch[1], 10);
+      const content = weightMatch[2];
+      parseSingleItem(content, currentWeight, matrix);
       continue;
     }
+
+    // Regular item (use current weight from group, or 100% if no group)
+    parseSingleItem(part, currentWeight, matrix);
   }
 
   return matrix;

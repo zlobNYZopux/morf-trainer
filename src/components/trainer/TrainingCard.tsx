@@ -107,9 +107,19 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
     <div className="flex h-[calc(100vh-5rem)] bg-[var(--background)] overflow-hidden">
       {/* LEFT: Poker Table - 40% */}
       <div className="w-[40%] flex flex-col border-r border-[var(--border)]">
-        {/* Action history bar - above table */}
+        {/* Action history bar + RNG - above table */}
         <div className="px-4 py-4 border-b border-[var(--border)] bg-[#0a0c10]">
-          <div className="flex items-center justify-center gap-3 flex-wrap text-base font-mono">
+          <div className="flex items-center gap-4">
+            {/* RNG - left side */}
+            {card.table_state.random !== undefined && (
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-3xl">🎲</span>
+                <span className="text-4xl font-black text-[#e8834A] font-mono drop-shadow-lg">{card.table_state.random}</span>
+              </div>
+            )}
+
+            {/* Action history */}
+            <div className="flex items-center justify-center gap-3 flex-wrap text-base font-mono flex-1">
             {actionHistory.map((h, i) => {
               const isRaiser = h.action && (h.action.includes("open") || h.action.includes("raise") || h.action.includes("3bet") || h.action.includes("4bet"));
               const isHeroTurn = h.isHero && showHeroAsQuestion;
@@ -140,6 +150,7 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
                 </span>
               );
             })}
+            </div>
           </div>
         </div>
 
@@ -154,7 +165,7 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
             situation={`${card.table_state.heroPosition} vs. ${card.table_state.villainPositions.find(v => v.action !== "fold")?.position || '?'}${card.table_state.random ? `, ${card.table_state.random}` : ''}`}
             pot={pot}
             random={card.table_state.random}
-            showHeroAsQuestion={true}
+            showHeroAsQuestion={showHeroAsQuestion}
           />
         </div>
       </div>

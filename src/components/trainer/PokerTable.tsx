@@ -22,13 +22,14 @@ interface PokerTableProps {
   showHeroAsQuestion?: boolean;
 }
 
+// Seats positioned on the outer rail edge, around the table perimeter
 const SEAT_6MAX: Record<string, { x: number; y: number }> = {
-  UTG: { x: 28, y: 78 },
-  MP: { x: 8, y: 50 },
-  CO: { x: 28, y: 22 },
-  BTN: { x: 72, y: 22 },
-  SB: { x: 92, y: 50 },
-  BB: { x: 72, y: 78 },
+  UTG: { x: 22, y: 85 },
+  MP: { x: 3, y: 50 },
+  CO: { x: 22, y: 15 },
+  BTN: { x: 78, y: 15 },
+  SB: { x: 97, y: 50 },
+  BB: { x: 78, y: 85 },
 };
 
 export function PokerTable({
@@ -122,19 +123,9 @@ export function PokerTable({
           {blinds.small}/{blinds.big}
         </div>
 
-        {/* RNG - moved down */}
-        {random !== undefined && (
-          <div className="absolute bottom-[15%] left-[8%] z-30">
-            <div className="text-5xl font-black text-[#e8834A] font-mono drop-shadow-lg">
-              🎲 {random}
-            </div>
-          </div>
-        )}
-
         {/* Seats */}
         {seats.map((seat) => {
           const isButton = seat.position === buttonPosition;
-          const label = seat.isHero && showHeroAsQuestion ? "???" : seat.folded ? "Fold" : seat.position;
 
           return (
             <div key={seat.position} className="absolute -translate-x-1/2 -translate-y-1/2 z-20" style={{ left: `${seat.coords.x}%`, top: `${seat.coords.y}%` }}>
@@ -168,11 +159,23 @@ export function PokerTable({
                 flex flex-col items-center rounded-lg px-3 py-1.5 min-w-[72px]
                 ${seat.isHero ? "bg-[#1a1d27] border-2 border-[#22c55e]" : seat.isActive ? "bg-[#1a1d27] border-2 border-[#e8834A]" : "bg-[#1a1d27] border border-[#333]"}
               `}>
-                <span className={`text-sm font-bold leading-tight ${seat.isHero && showHeroAsQuestion ? "text-[#e8834A]" : "text-white"}`}>
-                  {label}
+                <span className="text-sm font-bold text-white leading-tight">
+                  {seat.folded ? "Fold" : seat.position}
                 </span>
                 <span className="text-xs font-mono text-[#94a3b8] leading-tight">{seat.stack}</span>
               </div>
+
+              {/* Hero ??? indicator - toward center of table */}
+              {seat.isHero && showHeroAsQuestion && !seat.folded && (
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap z-20"
+                  style={seat.coords.y < 50 ? { top: "100%", marginTop: "4px" } : { bottom: "100%", marginBottom: "4px" }}
+                >
+                  <span className="px-3 py-1.5 rounded-lg bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30 font-bold text-sm">
+                    ???
+                  </span>
+                </div>
+              )}
 
               {/* Bet chip display */}
               {seat.bet !== undefined && seat.bet > 0 && !seat.folded && (
@@ -187,7 +190,7 @@ export function PokerTable({
                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
                   <span className={`
                     text-xs px-2 py-1 rounded font-bold
-                    ${seat.action.includes("3bet") || seat.action.includes("4bet") ? "bg-[#e8834A] text-white" : seat.action.includes("raise") || seat.action.includes("open") ? "bg-[#f59e0b] text-white" : seat.action.includes("call") ? "bg-[#22c55e] text-white" : "bg-[#333] text-[#94a3b8]"}
+                    ${seat.action.includes("3bet") || seat.action.includes("4bet") || seat.action.includes("raise") || seat.action.includes("open") ? "bg-[#e8834A] text-white" : seat.action.includes("call") ? "bg-[#22c55e] text-white" : "bg-[#333] text-[#94a3b8]"}
                   `}>
                     {seat.action}
                   </span>
