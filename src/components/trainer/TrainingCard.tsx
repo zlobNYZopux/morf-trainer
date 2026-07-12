@@ -9,7 +9,7 @@ import { ComparisonView } from "./ComparisonView";
 
 interface TableState {
   heroPosition: string;
-  villainPositions: Array<{ position: string; stack: number; action?: string; folded?: boolean }>;
+  villainPositions: Array<{ position: string; stack: number; action?: string; bet?: number; folded?: boolean }>;
   buttonPosition: string;
   blinds: { small: number; big: number };
   heroStack: number;
@@ -24,6 +24,7 @@ interface Card {
   question: string;
   table_state: TableState;
   reference_matrix: Record<string, number>;
+  [key: string]: unknown;
 }
 
 interface TrainingCardProps {
