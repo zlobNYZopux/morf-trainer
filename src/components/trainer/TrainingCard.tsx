@@ -78,25 +78,34 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
   };
   const pot = calculatePot();
 
-  // Build action history
+  // Build action history - only show players who have acted + hero
   const buildActionHistory = () => {
     const history: Array<{ position: string; stack: number; action?: string; amount?: number; isHero: boolean }> = [];
-    const allPositions = ["UTG", "MP", "CO", "BTN", "SB", "BB"];
     const actions = card.table_state.actions || [];
 
-    for (const pos of allPositions) {
-      const isHero = pos === card.table_state.heroPosition;
-      const villain = card.table_state.villainPositions.find((vp) => vp.position === pos);
-      const act = actions.find((a) => a.player === pos);
-
+    // Add players who have acted (in order)
+    for (const act of actions) {
+      const isHero = act.player === card.table_state.heroPosition;
+      const villain = card.table_state.villainPositions.find((vp) => vp.position === act.player);
       history.push({
-        position: pos,
+        position: act.player,
         stack: isHero ? card.table_state.heroStack : (villain?.stack ?? 100),
-        action: act?.action,
-        amount: act?.amount,
+        action: act.action,
+        amount: act.amount,
         isHero,
       });
     }
+
+    // Add hero if not already in actions
+    const heroInActions = actions.some((a) => a.player === card.table_state.heroPosition);
+    if (!heroInActions) {
+      history.push({
+        position: card.table_state.heroPosition,
+        stack: card.table_state.heroStack,
+        isHero: true,
+      });
+    }
+
     return history;
   };
 
