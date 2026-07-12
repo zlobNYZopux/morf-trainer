@@ -171,23 +171,19 @@ export function PokerTable({
                 </div>
               )}
 
-              {/* Bet chip - opposite center of placeholder, on felt */}
+              {/* Bet chip - opposite center of placeholder, on felt, no overlap */}
               {seat.bet !== undefined && seat.bet > 0 && !seat.folded && (
                 <div
                   className="absolute z-[15] flex items-center gap-1.5 whitespace-nowrap"
                   style={{
-                    // Side positions: chip horizontal (left/right of placeholder)
-                    // Top/bottom positions: chip vertical (above/below placeholder)
-                    ...(seat.coords.y < 20 || seat.coords.y > 80
-                      ? { left: "50%", transform: "translateX(-50%)" }
-                      : {}),
-                    ...(seat.coords.y < 20 ? { top: "100%", marginTop: "6px" } : {}),
-                    ...(seat.coords.y > 80 ? { bottom: "100%", marginBottom: "6px" } : {}),
-                    ...(seat.coords.x < 20 || seat.coords.x > 80
-                      ? { top: "50%", transform: "translateY(-50%)" }
-                      : {}),
-                    ...(seat.coords.x < 20 ? { left: "100%", marginLeft: "8px" } : {}),
-                    ...(seat.coords.x > 80 ? { right: "100%", marginRight: "8px" } : {}),
+                    // Bottom positions (UTG, BB): chip above placeholder, centered
+                    ...(seat.coords.y > 80 ? { bottom: "calc(100% + 4px)", left: "50%", transform: "translateX(-50%)" } : {}),
+                    // Top positions (CO, BTN): chip below placeholder but ABOVE action badge
+                    ...(seat.coords.y < 20 ? { top: "calc(100% + 4px)", left: "50%", transform: "translateX(-50%)" } : {}),
+                    // Left positions (MP): chip to the right, centered vertically
+                    ...(seat.coords.x < 20 ? { left: "calc(100% + 6px)", top: "50%", transform: "translateY(-50%)" } : {}),
+                    // Right positions (SB): chip to the left, centered vertically
+                    ...(seat.coords.x > 80 ? { right: "calc(100% + 6px)", top: "50%", transform: "translateY(-50%)" } : {}),
                   }}
                 >
                   {/* Chip */}
@@ -196,7 +192,7 @@ export function PokerTable({
                     <div className="absolute inset-[3px] rounded-full bg-[#d4733e] border border-[#e8834A]" />
                   </div>
                   {/* Amount */}
-                  <span className="text-sm font-bold text-[#e8834A]">{seat.bet}</span>
+                  <span className="text-sm font-bold text-[#e8834A]">{seat.bet} bb</span>
                 </div>
               )}
 
