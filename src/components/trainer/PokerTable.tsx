@@ -171,22 +171,32 @@ export function PokerTable({
                 </div>
               )}
 
-              {/* Bet chip - on felt, next to player */}
+              {/* Bet chip - opposite center of placeholder, on felt */}
               {seat.bet !== undefined && seat.bet > 0 && !seat.folded && (
                 <div
-                  className="absolute z-20 flex items-center gap-1.5 whitespace-nowrap"
-                  style={seat.coords.y < 50
-                    ? { top: "100%", marginTop: "8px", left: "50%", transform: "translateX(-50%)" }
-                    : { bottom: "100%", marginBottom: "8px", left: "50%", transform: "translateX(-50%)" }
-                  }
+                  className="absolute z-[15] flex items-center gap-1.5 whitespace-nowrap"
+                  style={{
+                    // Side positions: chip horizontal (left/right of placeholder)
+                    // Top/bottom positions: chip vertical (above/below placeholder)
+                    ...(seat.coords.y < 20 || seat.coords.y > 80
+                      ? { left: "50%", transform: "translateX(-50%)" }
+                      : {}),
+                    ...(seat.coords.y < 20 ? { top: "100%", marginTop: "6px" } : {}),
+                    ...(seat.coords.y > 80 ? { bottom: "100%", marginBottom: "6px" } : {}),
+                    ...(seat.coords.x < 20 || seat.coords.x > 80
+                      ? { top: "50%", transform: "translateY(-50%)" }
+                      : {}),
+                    ...(seat.coords.x < 20 ? { left: "100%", marginLeft: "8px" } : {}),
+                    ...(seat.coords.x > 80 ? { right: "100%", marginRight: "8px" } : {}),
+                  }}
                 >
                   {/* Chip */}
-                  <div className="relative flex items-center justify-center" style={{ width: "24px", height: "24px" }}>
+                  <div className="relative flex items-center justify-center" style={{ width: "22px", height: "22px" }}>
                     <div className="absolute inset-0 rounded-full bg-[#e8834A] border-2 border-[#c46a2e] shadow-md" />
                     <div className="absolute inset-[3px] rounded-full bg-[#d4733e] border border-[#e8834A]" />
                   </div>
                   {/* Amount */}
-                  <span className="text-xs font-bold text-[#e8834A]">{seat.bet}</span>
+                  <span className="text-sm font-bold text-[#e8834A]">{seat.bet}</span>
                 </div>
               )}
 
