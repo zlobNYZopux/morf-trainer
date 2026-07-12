@@ -22,14 +22,14 @@ interface PokerTableProps {
   showHeroAsQuestion?: boolean;
 }
 
-// Seats positioned on the outer rail edge, around the table perimeter
+// Seats on the outer rail edge
 const SEAT_6MAX: Record<string, { x: number; y: number }> = {
-  UTG: { x: 22, y: 88 },
-  MP: { x: 2, y: 50 },
-  CO: { x: 22, y: 12 },
-  BTN: { x: 78, y: 12 },
-  SB: { x: 98, y: 50 },
-  BB: { x: 78, y: 88 },
+  UTG: { x: 20, y: 92 },
+  MP: { x: 0, y: 50 },
+  CO: { x: 20, y: 8 },
+  BTN: { x: 80, y: 8 },
+  SB: { x: 100, y: 50 },
+  BB: { x: 80, y: 92 },
 };
 
 export function PokerTable({
@@ -118,15 +118,15 @@ export function PokerTable({
 
           return (
             <div key={seat.position} className="absolute -translate-x-1/2 -translate-y-1/2 z-20" style={{ left: `${seat.coords.x}%`, top: `${seat.coords.y}%` }}>
-              {/* Button indicator */}
+              {/* Button indicator - closer to table center */}
               {isButton && (
                 <div className="absolute z-30 rounded-full flex items-center justify-center" style={{
                   width: "22px", height: "22px",
                   background: "linear-gradient(135deg, #fff 0%, #ddd 100%)",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-                  ...(seat.coords.y < 50
-                    ? { bottom: "-6px", left: "50%", transform: "translateX(-50%)" }
-                    : { top: "-6px", left: "50%", transform: "translateX(-50%)" })
+                  bottom: "-12px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
                 }}>
                   <span className="text-[9px] font-bold text-[#333]">D</span>
                 </div>

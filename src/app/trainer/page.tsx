@@ -228,7 +228,7 @@ export default function TrainerPage() {
                     position: pos,
                     stack: currentCard.villainStack,
                     action: act?.action,
-                    folded: act ? act.action === 'fold' : true,
+                    folded: act ? act.action === 'fold' : false,
                   };
                 }),
               buttonPosition: 'BTN',
