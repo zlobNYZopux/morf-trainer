@@ -78,13 +78,14 @@ export function TrainingCard({ card, onAnswer }: TrainingCardProps) {
   };
   const pot = calculatePot();
 
-  // Build action history - only show players who have acted + hero
+  // Build action history - only show active players + hero (no folds)
   const buildActionHistory = () => {
     const history: Array<{ position: string; stack: number; action?: string; amount?: number; isHero: boolean }> = [];
     const actions = card.table_state.actions || [];
 
-    // Add players who have acted (in order)
+    // Add players who acted with non-fold actions (in order)
     for (const act of actions) {
+      if (act.action === "fold") continue; // Skip folded players
       const isHero = act.player === card.table_state.heroPosition;
       const villain = card.table_state.villainPositions.find((vp) => vp.position === act.player);
       history.push({
