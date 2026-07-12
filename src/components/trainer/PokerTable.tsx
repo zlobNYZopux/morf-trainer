@@ -24,12 +24,12 @@ interface PokerTableProps {
 
 // Seats positioned on the outer rail edge, around the table perimeter
 const SEAT_6MAX: Record<string, { x: number; y: number }> = {
-  UTG: { x: 22, y: 85 },
-  MP: { x: 3, y: 50 },
-  CO: { x: 22, y: 15 },
-  BTN: { x: 78, y: 15 },
-  SB: { x: 97, y: 50 },
-  BB: { x: 78, y: 85 },
+  UTG: { x: 22, y: 88 },
+  MP: { x: 2, y: 50 },
+  CO: { x: 22, y: 12 },
+  BTN: { x: 78, y: 12 },
+  SB: { x: 98, y: 50 },
+  BB: { x: 78, y: 88 },
 };
 
 export function PokerTable({
@@ -129,51 +129,72 @@ export function PokerTable({
 
           return (
             <div key={seat.position} className="absolute -translate-x-1/2 -translate-y-1/2 z-20" style={{ left: `${seat.coords.x}%`, top: `${seat.coords.y}%` }}>
-              {/* Button */}
+              {/* Button indicator */}
               {isButton && (
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 rounded-full flex items-center justify-center" style={{
-                  width: "24px", height: "24px",
+                <div className="absolute z-30 rounded-full flex items-center justify-center" style={{
+                  width: "22px", height: "22px",
                   background: "linear-gradient(135deg, #fff 0%, #ddd 100%)",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  ...(seat.coords.y < 50
+                    ? { bottom: "-8px", left: "50%", transform: "translateX(-50%)" }
+                    : { top: "-8px", left: "50%", transform: "translateX(-50%)" })
                 }}>
-                  <span className="text-[10px] font-bold text-[#333]">D</span>
+                  <span className="text-[9px] font-bold text-[#333]">D</span>
                 </div>
               )}
 
-              {/* Card backs */}
-              <div className="flex gap-1 mb-1.5 justify-center">
-                {[1, 2].map((i) => (
-                  <div key={i} className="rounded-sm" style={{
-                    width: "28px", height: "38px",
-                    background: seat.folded
-                      ? "linear-gradient(135deg, #3a3a3a 0%, #222 100%)"
-                      : "linear-gradient(135deg, #8b7355 0%, #6b5a3e 50%, #4a3f2a 100%)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    opacity: seat.folded ? 0.3 : 1,
-                  }} />
-                ))}
-              </div>
+              {/* Layout: top positions = label on top, cards below; bottom positions = cards on top, label below */}
+              {seat.coords.y < 50 ? (
+                /* Top positions (CO, BTN): label first, then cards toward center */
+                <>
+                  <div className={`
+                    flex flex-col items-center rounded-lg px-3 py-1.5 min-w-[72px] mb-1
+                    ${seat.isHero ? "bg-[#1a1d27] border-2 border-[#22c55e]" : seat.isActive ? "bg-[#1a1d27] border-2 border-[#e8834A]" : "bg-[#1a1d27] border border-[#333]"}
+                  `}>
+                    <span className="text-sm font-bold text-white leading-tight">{seat.folded ? "Fold" : seat.position}</span>
+                    <span className="text-xs font-mono text-[#94a3b8] leading-tight">{seat.stack}</span>
+                  </div>
+                  <div className="flex gap-1 justify-center">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="rounded-sm" style={{
+                        width: "26px", height: "36px",
+                        background: seat.folded ? "linear-gradient(135deg, #3a3a3a 0%, #222 100%)" : "linear-gradient(135deg, #8b7355 0%, #6b5a3e 50%, #4a3f2a 100%)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        opacity: seat.folded ? 0.3 : 1,
+                      }} />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                /* Bottom positions (UTG, BB, MP, SB): cards first, then label toward edge */
+                <>
+                  <div className="flex gap-1 justify-center mb-1">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="rounded-sm" style={{
+                        width: "26px", height: "36px",
+                        background: seat.folded ? "linear-gradient(135deg, #3a3a3a 0%, #222 100%)" : "linear-gradient(135deg, #8b7355 0%, #6b5a3e 50%, #4a3f2a 100%)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        opacity: seat.folded ? 0.3 : 1,
+                      }} />
+                    ))}
+                  </div>
+                  <div className={`
+                    flex flex-col items-center rounded-lg px-3 py-1.5 min-w-[72px]
+                    ${seat.isHero ? "bg-[#1a1d27] border-2 border-[#22c55e]" : seat.isActive ? "bg-[#1a1d27] border-2 border-[#e8834A]" : "bg-[#1a1d27] border border-[#333]"}
+                  `}>
+                    <span className="text-sm font-bold text-white leading-tight">{seat.folded ? "Fold" : seat.position}</span>
+                    <span className="text-xs font-mono text-[#94a3b8] leading-tight">{seat.stack}</span>
+                  </div>
+                </>
+              )}
 
-              {/* Seat label */}
-              <div className={`
-                flex flex-col items-center rounded-lg px-3 py-1.5 min-w-[72px]
-                ${seat.isHero ? "bg-[#1a1d27] border-2 border-[#22c55e]" : seat.isActive ? "bg-[#1a1d27] border-2 border-[#e8834A]" : "bg-[#1a1d27] border border-[#333]"}
-              `}>
-                <span className="text-sm font-bold text-white leading-tight">
-                  {seat.folded ? "Fold" : seat.position}
-                </span>
-                <span className="text-xs font-mono text-[#94a3b8] leading-tight">{seat.stack}</span>
-              </div>
-
-              {/* Hero ??? indicator - toward center of table */}
+              {/* Hero ??? indicator - toward center */}
               {seat.isHero && showHeroAsQuestion && !seat.folded && (
                 <div
                   className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap z-20"
                   style={seat.coords.y < 50 ? { top: "100%", marginTop: "4px" } : { bottom: "100%", marginBottom: "4px" }}
                 >
-                  <span className="px-3 py-1.5 rounded-lg bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30 font-bold text-sm">
-                    ???
-                  </span>
+                  <span className="px-3 py-1.5 rounded-lg bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30 font-bold text-sm">???</span>
                 </div>
               )}
 
